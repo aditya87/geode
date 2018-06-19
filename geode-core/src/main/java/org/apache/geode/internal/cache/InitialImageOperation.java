@@ -563,11 +563,11 @@ public class InitialImageOperation {
           }
           if (this.gotImage) {
             // TODO add localizedString
-            logger.info("{} is done getting image from {}. isDeltaGII is {}", this.region.getName(),
+            logger.info("XXX {} is done getting image from {}. isDeltaGII is {}", this.region.getName(),
                 recipient, this.isDeltaGII);
           } else {
             // TODO add localizedString
-            logger.info("{} failed to get image from {}", this.region.getName(), recipient);
+            logger.info("XXX {} failed to get image from {}", this.region.getName(), recipient);
           }
           if (this.region.getDataPolicy().withPersistence()) {
             logger.info(LocalizedMessage.create(
@@ -1304,7 +1304,9 @@ public class InitialImageOperation {
               // bug 37461: don't allow abort flag to be reset
               boolean isAborted = this.abort; // volatile fetch
               if (!isAborted) {
+                logger.warn("XXX ImageProcessor.process about to process chunk entries=" + m.entries);
                 isAborted = !processChunk(m.entries, m.getSender(), m.remoteVersion);
+                logger.warn("XXX ImageProcessor.process processed chunk entries isAborted=" + isAborted);
                 if (isAborted) {
                   this.abort = true; // volatile store
                 } else {
@@ -1670,10 +1672,9 @@ public class InitialImageOperation {
         final int seriesNum = 0;
 
         // chunkEntries returns false if didn't finish
-        if (isGiiDebugEnabled) {
-          logger.trace(LogMarker.INITIAL_IMAGE_VERBOSE,
-              "RequestImageMessage: Starting chunkEntries for {}", rgn.getFullPath());
-        }
+        //if (isGiiDebugEnabled) {
+          logger.warn("XXX RequestImageMessage: Starting chunkEntries for {}", rgn.getFullPath());
+        //}
 
         final InitialImageFlowControl flowControl =
             InitialImageFlowControl.register(dm, getSender());
@@ -1731,18 +1732,17 @@ public class InitialImageOperation {
               && rgn.getConcurrencyChecksEnabled()) {
             synchronized (rgn.getCache().getTombstoneService().getBlockGCLock()) {
               if (goWithFullGII(rgn, this.versionVector)) {
-                if (isGiiDebugEnabled) {
-                  logger.trace(LogMarker.INITIAL_IMAGE_VERBOSE, "have to do fullGII");
-                }
+                //if (isGiiDebugEnabled) {
+                  logger.warn("XXX Doing full GII for {}", rgn.getFullPath());
+                //}
                 this.versionVector = null; // full GII
               } else {
                 // lock GIILock only for deltaGII
                 int count = rgn.getCache().getTombstoneService().incrementGCBlockCount();
                 markedOngoingGII = true;
-                if (isGiiDebugEnabled) {
-                  logger.trace(LogMarker.INITIAL_IMAGE_VERBOSE, "There're {} Delta GII on going",
-                      count);
-                }
+                //if (isGiiDebugEnabled) {
+                logger.warn("XX Doing delta GII for {}", rgn.getFullPath());
+                //}
               }
             }
           }
@@ -1780,9 +1780,11 @@ public class InitialImageOperation {
                       if (this.last && rgn.getVersionVector() != null) {
                         gcVersions = rgn.getVersionVector().getMemberToGCVersion();
                       }
+                      logger.warn("XXX RequestImageMessage.executeWith about to send chunk " + (msgNum+1));
                       replyWithData(dm, entries, seriesNum, msgNum++, numSeries, this.last,
                           flowControlId,
                           versionVector != null, holderToSend, gcVersions);
+                      logger.warn("XXX RequestImageMessage.executeWith sent chunk " + (msgNum));
                     }
                     return !abort;
                   } catch (CancelException e) {
@@ -1792,11 +1794,10 @@ public class InitialImageOperation {
               });
 
 
-          if (isGiiDebugEnabled) {
-            logger.trace(LogMarker.INITIAL_IMAGE_VERBOSE,
-                "RequestImageMessage: ended chunkEntries for {}; finished = {}", rgn.getFullPath(),
+          //if (isGiiDebugEnabled) {
+            logger.warn("XXX RequestImageMessage: ended chunkEntries for {}; finished = {}", rgn.getFullPath(),
                 finished);
-          }
+          //}
 
           // Call to chunkEntries above will have sent at least one
           // reply with last==true for the last message. (unless doing abortTest or
@@ -1870,6 +1871,7 @@ public class InitialImageOperation {
           // null chunk signals receiver that we are aborting
           ImageReplyMessage.send(getSender(), processorId, rex, dm, null, 0, 0, 1, true, 0, false,
               null, null);
+          logger.warn("XXX RequestImageMessage.process sent failure message");
         } // !success
 
         if (internalAfterSentImageReply != null
@@ -1934,6 +1936,7 @@ public class InitialImageOperation {
               && it.hasNext()) {
             RegionEntry mapEntry = (RegionEntry) it.next();
             Object key = mapEntry.getKey();
+            logger.warn("XXX RequestImageMessage.chunkEntries checking key=" + key);
             if (rgn.checkEntryNotValid(mapEntry)) { // entry was just removed
               continue;
             }
@@ -2001,6 +2004,7 @@ public class InitialImageOperation {
               entry.setLastModified(rgn.getDistributionManager(), mapEntry.getLastModified());
             }
 
+            logger.warn("XXX RequestImageMessage.chunkEntries adding to chunk entry=" + entry);
             chunkEntries.add(entry);
             currentChunkSize += entry.calcSerializedSize();
           }

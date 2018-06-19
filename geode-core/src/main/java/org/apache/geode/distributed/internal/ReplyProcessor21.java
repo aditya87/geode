@@ -35,6 +35,7 @@ import org.apache.geode.i18n.StringId;
 import org.apache.geode.internal.Assert;
 import org.apache.geode.internal.DSFIDNotFoundException;
 import org.apache.geode.internal.Version;
+import org.apache.geode.internal.cache.partitioned.PutAllPRMessage;
 import org.apache.geode.internal.cache.versions.ConcurrentCacheModificationException;
 import org.apache.geode.internal.i18n.LocalizedStrings;
 import org.apache.geode.internal.logging.LogService;
@@ -394,8 +395,10 @@ public class ReplyProcessor21 implements MembershipListener {
   }
 
   protected void process(DistributionMessage msg, boolean warn) {
-    if (logger.isDebugEnabled()) {
-      logger.debug("{} got process({}) from {}", this, msg, msg.getSender());
+    if (msg instanceof PutAllPRMessage.PutAllReplyMessage) {
+      //if (logger.isDebugEnabled()) {
+        logger.warn("XXX {} got process({}) from {}", this, msg, msg.getSender());
+      //}
     }
     if (msg instanceof ReplyMessage) {
       ReplyException ex = ((ReplyMessage) msg).getException();

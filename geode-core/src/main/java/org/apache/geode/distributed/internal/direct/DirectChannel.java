@@ -47,6 +47,7 @@ import org.apache.geode.distributed.internal.membership.InternalDistributedMembe
 import org.apache.geode.distributed.internal.membership.MembershipManager;
 import org.apache.geode.i18n.StringId;
 import org.apache.geode.internal.cache.DirectReplyMessage;
+import org.apache.geode.internal.cache.DistributedPutAllOperation;
 import org.apache.geode.internal.i18n.LocalizedStrings;
 import org.apache.geode.internal.logging.LogService;
 import org.apache.geode.internal.logging.log4j.AlertAppender;
@@ -315,9 +316,11 @@ public class DirectChannel {
     if (!directReply && directMsg != null) {
       directMsg.registerProcessor();
     }
-    if (logger.isDebugEnabled()) {
-      logger.debug("Sending ({}) to {} peers ({}) via tcp/ip",
-          msg, p_destinations.length, Arrays.toString(p_destinations));
+    if (msg instanceof DistributedPutAllOperation.PutAllMessage) {
+      //if (logger.isDebugEnabled()) {
+        logger.warn("XXX DirectChannel sendToMany Sending ({}) to {} peers ({}) via tcp/ip",
+            msg, p_destinations.length, Arrays.toString(p_destinations));
+      //}
     }
 
     try {

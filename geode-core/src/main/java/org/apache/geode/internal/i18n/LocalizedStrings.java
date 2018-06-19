@@ -5568,7 +5568,7 @@ public class LocalizedStrings {
   public static final StringId CacheClientProxy_CQEXCEPTION_WHILE_CLOSING_NON_DURABLE_CQS_0 =
       new StringId(4334, "CqException while closing non durable Cqs. {0}");
   public static final StringId InitialImageOperation_REGION_0_REQUESTING_INITIAL_IMAGE_FROM_1 =
-      new StringId(4336, "Region {0} requesting initial image from {1}");
+      new StringId(4336, "XXX Region {0} requesting initial image from {1}");
   public static final StringId CacheClientUpdater_ERROR_WHILE_PROCESSING_THE_CQ_MESSAGE_PROBLEM_WITH_READING_MESSAGE_FOR_CQ_0 =
       new StringId(4337,
           "Error while processing the CQ Message. Problem with reading message for CQ# : {0}");

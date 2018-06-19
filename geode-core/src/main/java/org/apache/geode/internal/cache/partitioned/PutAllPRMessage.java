@@ -194,9 +194,9 @@ public class PutAllPRMessage extends PartitionMessageWithDirectReply {
     PutAllResponse p = new PutAllResponse(r.getSystem(), recipients);
     initMessage(r, recipients, false, p);
     setTransactionDistributed(r.getCache().getTxManager().isDistributed());
-    if (logger.isDebugEnabled()) {
-      logger.debug("PutAllPRMessage.send: recipient is {}, msg is {}", recipient, this);
-    }
+    //if (logger.isDebugEnabled()) {
+      logger.warn("XXX PutAllPRMessage.send: recipient is {}, msg is {}", recipient, this);
+    //}
 
     Set failures = r.getDistributionManager().putOutgoing(this);
     if (failures != null && failures.size() > 0) {
@@ -317,6 +317,7 @@ public class PutAllPRMessage extends PartitionMessageWithDirectReply {
       long startTime) throws EntryExistsException, ForceReattemptException, DataLocationException {
     boolean sendReply = true;
 
+    logger.warn("XXX PutAllPRMessage.operateOnPartitionedRegion invoked msg=" + this);
     InternalDistributedMember eventSender = getSender();
 
     long lastModified = 0L;
@@ -330,6 +331,7 @@ public class PutAllPRMessage extends PartitionMessageWithDirectReply {
     if (sendReply) {
       sendReply(getSender(), getProcessorId(), dm, null, pr, startTime);
     }
+    logger.warn("XXX PutAllPRMessage.operateOnPartitionedRegion completed msg=" + this);
     return false;
   }
 
@@ -400,11 +402,11 @@ public class PutAllPRMessage extends PartitionMessageWithDirectReply {
           baseEvent.setContext(this.bridgeContext);
         }
         baseEvent.setPossibleDuplicate(this.posDup);
-        if (logger.isDebugEnabled()) {
-          logger.debug(
-              "PutAllPRMessage.doLocalPutAll: eventSender is {}, baseEvent is {}, msg is {}",
+        //if (logger.isDebugEnabled()) {
+          logger.warn(
+              "XXX PutAllPRMessage.doLocalPutAll: eventSender is {}, baseEvent is {}, msg is {}",
               eventSender, baseEvent, this);
-        }
+        //}
         dpao = new DistributedPutAllOperation(baseEvent, putAllPRDataSize, false);
       }
 
@@ -474,8 +476,8 @@ public class PutAllPRMessage extends PartitionMessageWithDirectReply {
                 try {
                   didPut = r.getDataView().putEntryOnRemote(ev, false, false, null, false,
                       lastModified, true);
-                  if (didPut && logger.isDebugEnabled()) {
-                    logger.debug("PutAllPRMessage.doLocalPutAll:putLocally success for {}", ev);
+                  if (didPut) {
+                    logger.warn("XXX PutAllPRMessage.doLocalPutAll:putLocally success for {}", ev);
                   }
                 } catch (ConcurrentCacheModificationException e) {
                   didPut = true;
