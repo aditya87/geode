@@ -453,10 +453,12 @@ public abstract class DistributedCacheOperation {
         }
 
         if (this instanceof DistributedPutAllOperation) {
-          //if (logger.isDebugEnabled()) {
-            logger.warn("XXX DistributedPutAllOperation _distribute recipients for {}: {} with adjunct messages to: {}", this, recipients,
-                adjunctRecipients);
-          //}
+          // if (logger.isDebugEnabled()) {
+          logger.warn(
+              "XXX DistributedPutAllOperation _distribute recipients for {}: {} with adjunct messages to: {}",
+              this, recipients,
+              adjunctRecipients);
+          // }
         }
 
         if (shouldAck) {
@@ -607,7 +609,9 @@ public abstract class DistributedCacheOperation {
         }
 
         if (failures != null && !failures.isEmpty()) {
-          logger.warn("XXX DistributedPutAllOperation _distribute Failed sending ({}) to {} while processing event:{}", msg, failures, event);
+          logger.warn(
+              "XXX DistributedPutAllOperation _distribute Failed sending ({}) to {} while processing event:{}",
+              msg, failures, event);
         }
 
         Set<InternalDistributedMember> adjunctRecipientsWithNoCacheServer =

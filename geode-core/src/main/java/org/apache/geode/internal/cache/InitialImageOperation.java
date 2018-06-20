@@ -563,7 +563,8 @@ public class InitialImageOperation {
           }
           if (this.gotImage) {
             // TODO add localizedString
-            logger.info("XXX {} is done getting image from {}. isDeltaGII is {}", this.region.getName(),
+            logger.info("XXX {} is done getting image from {}. isDeltaGII is {}",
+                this.region.getName(),
                 recipient, this.isDeltaGII);
           } else {
             // TODO add localizedString
@@ -1304,9 +1305,11 @@ public class InitialImageOperation {
               // bug 37461: don't allow abort flag to be reset
               boolean isAborted = this.abort; // volatile fetch
               if (!isAborted) {
-                logger.warn("XXX ImageProcessor.process about to process chunk entries=" + m.entries);
+                logger
+                    .warn("XXX ImageProcessor.process about to process chunk entries=" + m.entries);
                 isAborted = !processChunk(m.entries, m.getSender(), m.remoteVersion);
-                logger.warn("XXX ImageProcessor.process processed chunk entries isAborted=" + isAborted);
+                logger.warn(
+                    "XXX ImageProcessor.process processed chunk entries isAborted=" + isAborted);
                 if (isAborted) {
                   this.abort = true; // volatile store
                 } else {
@@ -1672,9 +1675,9 @@ public class InitialImageOperation {
         final int seriesNum = 0;
 
         // chunkEntries returns false if didn't finish
-        //if (isGiiDebugEnabled) {
-          logger.warn("XXX RequestImageMessage: Starting chunkEntries for {}", rgn.getFullPath());
-        //}
+        // if (isGiiDebugEnabled) {
+        logger.warn("XXX RequestImageMessage: Starting chunkEntries for {}", rgn.getFullPath());
+        // }
 
         final InitialImageFlowControl flowControl =
             InitialImageFlowControl.register(dm, getSender());
@@ -1732,17 +1735,17 @@ public class InitialImageOperation {
               && rgn.getConcurrencyChecksEnabled()) {
             synchronized (rgn.getCache().getTombstoneService().getBlockGCLock()) {
               if (goWithFullGII(rgn, this.versionVector)) {
-                //if (isGiiDebugEnabled) {
-                  logger.warn("XXX Doing full GII for {}", rgn.getFullPath());
-                //}
+                // if (isGiiDebugEnabled) {
+                logger.warn("XXX Doing full GII for {}", rgn.getFullPath());
+                // }
                 this.versionVector = null; // full GII
               } else {
                 // lock GIILock only for deltaGII
                 int count = rgn.getCache().getTombstoneService().incrementGCBlockCount();
                 markedOngoingGII = true;
-                //if (isGiiDebugEnabled) {
+                // if (isGiiDebugEnabled) {
                 logger.warn("XX Doing delta GII for {}", rgn.getFullPath());
-                //}
+                // }
               }
             }
           }
@@ -1780,7 +1783,8 @@ public class InitialImageOperation {
                       if (this.last && rgn.getVersionVector() != null) {
                         gcVersions = rgn.getVersionVector().getMemberToGCVersion();
                       }
-                      logger.warn("XXX RequestImageMessage.executeWith about to send chunk " + (msgNum+1));
+                      logger.warn("XXX RequestImageMessage.executeWith about to send chunk "
+                          + (msgNum + 1));
                       replyWithData(dm, entries, seriesNum, msgNum++, numSeries, this.last,
                           flowControlId,
                           versionVector != null, holderToSend, gcVersions);
@@ -1794,10 +1798,11 @@ public class InitialImageOperation {
               });
 
 
-          //if (isGiiDebugEnabled) {
-            logger.warn("XXX RequestImageMessage: ended chunkEntries for {}; finished = {}", rgn.getFullPath(),
-                finished);
-          //}
+          // if (isGiiDebugEnabled) {
+          logger.warn("XXX RequestImageMessage: ended chunkEntries for {}; finished = {}",
+              rgn.getFullPath(),
+              finished);
+          // }
 
           // Call to chunkEntries above will have sent at least one
           // reply with last==true for the last message. (unless doing abortTest or

@@ -194,9 +194,9 @@ public class PutAllPRMessage extends PartitionMessageWithDirectReply {
     PutAllResponse p = new PutAllResponse(r.getSystem(), recipients);
     initMessage(r, recipients, false, p);
     setTransactionDistributed(r.getCache().getTxManager().isDistributed());
-    //if (logger.isDebugEnabled()) {
-      logger.warn("XXX PutAllPRMessage.send: recipient is {}, msg is {}", recipient, this);
-    //}
+    // if (logger.isDebugEnabled()) {
+    logger.warn("XXX PutAllPRMessage.send: recipient is {}, msg is {}", recipient, this);
+    // }
 
     Set failures = r.getDistributionManager().putOutgoing(this);
     if (failures != null && failures.size() > 0) {
@@ -402,11 +402,11 @@ public class PutAllPRMessage extends PartitionMessageWithDirectReply {
           baseEvent.setContext(this.bridgeContext);
         }
         baseEvent.setPossibleDuplicate(this.posDup);
-        //if (logger.isDebugEnabled()) {
-          logger.warn(
-              "XXX PutAllPRMessage.doLocalPutAll: eventSender is {}, baseEvent is {}, msg is {}",
-              eventSender, baseEvent, this);
-        //}
+        // if (logger.isDebugEnabled()) {
+        logger.warn(
+            "XXX PutAllPRMessage.doLocalPutAll: eventSender is {}, baseEvent is {}, msg is {}",
+            eventSender, baseEvent, this);
+        // }
         dpao = new DistributedPutAllOperation(baseEvent, putAllPRDataSize, false);
       }
 

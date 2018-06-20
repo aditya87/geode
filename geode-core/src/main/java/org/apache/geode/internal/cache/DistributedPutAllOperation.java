@@ -1175,13 +1175,17 @@ public class DistributedPutAllOperation extends AbstractUpdateOperation {
         public void run() {
           final boolean isDebugEnabled = logger.isDebugEnabled();
           for (int i = 0; i < putAllDataSize; ++i) {
-            //if (isDebugEnabled) {
-              logger.warn("XXX PutAllMessage basicOperateOnRegion putAll processing {} with {} sender={}", putAllData[i],
-                  putAllData[i].versionTag, sender);
-            //}
+            // if (isDebugEnabled) {
+            logger.warn(
+                "XXX PutAllMessage basicOperateOnRegion putAll processing {} with {} sender={}",
+                putAllData[i],
+                putAllData[i].versionTag, sender);
+            // }
             putAllData[i].setSender(sender);
             doEntryPut(putAllData[i], rgn);
-            logger.warn("XXX PutAllMessage basicOperateOnRegion putAll done processing {} with {} sender={}", putAllData[i],
+            logger.warn(
+                "XXX PutAllMessage basicOperateOnRegion putAll done processing {} with {} sender={}",
+                putAllData[i],
                 putAllData[i].versionTag, sender);
           }
         }

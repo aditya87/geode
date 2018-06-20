@@ -317,10 +317,10 @@ public class DirectChannel {
       directMsg.registerProcessor();
     }
     if (msg instanceof DistributedPutAllOperation.PutAllMessage) {
-      //if (logger.isDebugEnabled()) {
-        logger.warn("XXX DirectChannel sendToMany Sending ({}) to {} peers ({}) via tcp/ip",
-            msg, p_destinations.length, Arrays.toString(p_destinations));
-      //}
+      // if (logger.isDebugEnabled()) {
+      logger.warn("XXX DirectChannel sendToMany Sending ({}) to {} peers ({}) via tcp/ip",
+          msg, p_destinations.length, Arrays.toString(p_destinations));
+      // }
     }
 
     try {

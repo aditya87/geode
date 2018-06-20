@@ -396,9 +396,9 @@ public class ReplyProcessor21 implements MembershipListener {
 
   protected void process(DistributionMessage msg, boolean warn) {
     if (msg instanceof PutAllPRMessage.PutAllReplyMessage) {
-      //if (logger.isDebugEnabled()) {
-        logger.warn("XXX {} got process({}) from {}", this, msg, msg.getSender());
-      //}
+      // if (logger.isDebugEnabled()) {
+      logger.warn("XXX {} got process({}) from {}", this, msg, msg.getSender());
+      // }
     }
     if (msg instanceof ReplyMessage) {
       ReplyException ex = ((ReplyMessage) msg).getException();
