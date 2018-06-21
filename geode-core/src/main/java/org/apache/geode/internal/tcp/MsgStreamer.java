@@ -37,6 +37,7 @@ import org.apache.geode.internal.HeapDataOutputStream;
 import org.apache.geode.internal.InternalDataSerializer;
 import org.apache.geode.internal.ObjToByteArraySerializer;
 import org.apache.geode.internal.Version;
+import org.apache.geode.internal.cache.DistributedPutAllOperation;
 import org.apache.geode.internal.i18n.LocalizedStrings;
 import org.apache.geode.internal.logging.LogService;
 
@@ -313,8 +314,14 @@ public class MsgStreamer extends OutputStream
     for (Iterator it = this.cons.iterator(); it.hasNext();) {
       Connection con = (Connection) it.next();
       try {
+        if (this.msg instanceof DistributedPutAllOperation.PutAllMessage) {
+          logger.warn("XXX MsgStreamer realFlush about to write con=" + con + "; msg=" + this.msg);
+        }
         con.sendPreserialized(this.buffer,
             lastFlushForMessage && this.msg.containsRegionContentChange(), conflationMsg);
+        if (this.msg instanceof DistributedPutAllOperation.PutAllMessage) {
+          logger.warn("XXX MsgStreamer realFlush completed write con=" + con + "; msg=" + this.msg);
+        }
       } catch (IOException ex) {
         it.remove();
         if (this.ce == null)

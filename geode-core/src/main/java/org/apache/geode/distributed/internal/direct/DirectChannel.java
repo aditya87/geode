@@ -342,6 +342,10 @@ public class DirectChannel {
         final List cons = new ArrayList(destinations.length);
         ConnectExceptions ce = getConnections(mgr, msg, destinations, orderedMsg, retry, ackTimeout,
             ackSDTimeout, cons);
+        if (msg instanceof DistributedPutAllOperation.PutAllMessage) {
+          logger
+              .warn("XXX DirectChannel sendToMany got connections=" + cons + "; exceptions=" + ce);
+        }
         if (directReply && msg.getProcessorId() > 0) { // no longer a direct-reply message?
           directReply = false;
         }
@@ -397,6 +401,9 @@ public class DirectChannel {
               startTime = System.currentTimeMillis();
             }
             ms.reserveConnections(startTime, ackTimeout, ackSDTimeout);
+            if (msg instanceof DistributedPutAllOperation.PutAllMessage) {
+              logger.warn("XXX DirectChannel sendToMany reserved connections");
+            }
 
             int result = ms.writeMessage();
             if (bytesWritten == 0) {
