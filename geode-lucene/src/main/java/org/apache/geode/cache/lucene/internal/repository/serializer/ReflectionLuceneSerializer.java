@@ -21,10 +21,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.document.Document;
@@ -41,7 +42,7 @@ import org.apache.geode.internal.logging.LogService;
 class ReflectionLuceneSerializer implements LuceneSerializer {
 
   private Field[] fields;
-  private Map<String, PointsConfig> pointsConfigMap = new HashMap();
+  private ConcurrentMap<String, PointsConfig> pointsConfigMap = new ConcurrentHashMap();
 
   private static final Logger logger = LogService.getLogger();
 
@@ -60,7 +61,7 @@ class ReflectionLuceneSerializer implements LuceneSerializer {
           field.setAccessible(true);
           foundFields.add(field);
 
-          if (type == Long.class || type == Integer.class || type == Float.class
+          if (type == Integer.class || type == Long.class || type == Float.class
               || type == Double.class) {
             pointsConfigMap.put(field.getName(),
                 new PointsConfig(NumberFormat.getInstance(), (Class<? extends Number>) type));

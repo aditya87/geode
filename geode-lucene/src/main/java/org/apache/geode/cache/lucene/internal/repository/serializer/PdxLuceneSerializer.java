@@ -18,8 +18,9 @@ package org.apache.geode.cache.lucene.internal.repository.serializer;
 import java.text.NumberFormat;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.document.Document;
@@ -36,18 +37,16 @@ import org.apache.geode.pdx.PdxInstance;
 class PdxLuceneSerializer implements LuceneSerializer {
 
   private static final Logger logger = LogService.getLogger();
-  private Map<String, PointsConfig> pointsConfigMap = new HashMap();
+  private ConcurrentMap<String, PointsConfig> pointsConfigMap = new ConcurrentHashMap();
 
   public PdxLuceneSerializer() {}
 
   private void saveNumericFields(String fieldName, Object fieldValue) {
     Class<?> clazz = fieldValue.getClass();
-    if (pointsConfigMap.get(fieldName) == null) {
-      if (clazz == Long.class || clazz == Integer.class || clazz == Float.class
-          || clazz == Double.class) {
-        pointsConfigMap.put(fieldName,
-            new PointsConfig(NumberFormat.getInstance(), (Class<? extends Number>) clazz));
-      }
+    if (clazz == Integer.class || clazz == Long.class || clazz == Float.class
+        || clazz == Double.class) {
+      pointsConfigMap.computeIfAbsent(fieldName,
+          field -> new PointsConfig(NumberFormat.getInstance(), (Class<? extends Number>) clazz));
     }
   }
 

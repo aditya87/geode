@@ -16,8 +16,9 @@ package org.apache.geode.cache.lucene.internal.repository.serializer;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.document.Document;
@@ -47,7 +48,7 @@ public class HeterogeneousLuceneSerializer implements LuceneSerializer {
   private Map<Class<?>, LuceneSerializer> mappers =
       new CopyOnWriteWeakHashMap<Class<?>, LuceneSerializer>();
 
-  private Map<String, PointsConfig> pointsConfigMap = new HashMap();
+  private ConcurrentMap<String, PointsConfig> pointsConfigMap = new ConcurrentHashMap();
 
   private static final Logger logger = LogService.getLogger();
 
@@ -93,7 +94,6 @@ public class HeterogeneousLuceneSerializer implements LuceneSerializer {
     }
   }
 
-  // TODO need a compute method to recalculate pointsConfigMap
   public Map<String, PointsConfig> getPointsConfigMap() {
     PdxLuceneSerializer pdxSerializer = (PdxLuceneSerializer) pdxMapper;
     pointsConfigMap.putAll(pdxSerializer.getPointsConfigMap());
