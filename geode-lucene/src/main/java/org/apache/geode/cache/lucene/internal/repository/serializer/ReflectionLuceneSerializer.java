@@ -16,15 +16,19 @@
 package org.apache.geode.cache.lucene.internal.repository.serializer;
 
 import java.lang.reflect.Field;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.queryparser.flexible.standard.config.PointsConfig;
 
 import org.apache.geode.cache.lucene.LuceneIndex;
 import org.apache.geode.cache.lucene.LuceneSerializer;
@@ -37,6 +41,7 @@ import org.apache.geode.internal.logging.LogService;
 class ReflectionLuceneSerializer implements LuceneSerializer {
 
   private Field[] fields;
+  private Map<String, PointsConfig> pointsConfigMap = new HashMap();
 
   private static final Logger logger = LogService.getLogger();
 
@@ -54,6 +59,12 @@ class ReflectionLuceneSerializer implements LuceneSerializer {
         if (fieldSet.contains(field.getName()) && SerializerUtil.isSupported(type)) {
           field.setAccessible(true);
           foundFields.add(field);
+
+          if (type == Long.class || type == Integer.class || type == Float.class
+              || type == Double.class) {
+            pointsConfigMap.put(field.getName(),
+                new PointsConfig(NumberFormat.getInstance(), (Class<? extends Number>) type));
+          }
         }
       }
 
@@ -83,7 +94,8 @@ class ReflectionLuceneSerializer implements LuceneSerializer {
     return Collections.singleton(doc);
   }
 
-  public Field[] getFields() {
-    return fields;
+  public Map<String, PointsConfig> getPointsConfigMap() {
+    return pointsConfigMap;
   }
+
 }
