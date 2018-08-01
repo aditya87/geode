@@ -14,22 +14,6 @@
  */
 package org.apache.geode.redis;
 
-import static org.apache.geode.distributed.ConfigurationProperties.LOG_LEVEL;
-
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
-import java.util.Collection;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
@@ -45,7 +29,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.oio.OioServerSocketChannel;
 import io.netty.util.concurrent.Future;
-
 import org.apache.geode.InternalGemFireError;
 import org.apache.geode.LogWriter;
 import org.apache.geode.annotations.Experimental;
@@ -72,6 +55,23 @@ import org.apache.geode.redis.internal.Coder;
 import org.apache.geode.redis.internal.ExecutionHandlerContext;
 import org.apache.geode.redis.internal.RedisDataType;
 import org.apache.geode.redis.internal.RegionProvider;
+import org.apache.geode.redis.internal.ZSet;
+
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
+import java.util.Collection;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.apache.geode.distributed.ConfigurationProperties.LOG_LEVEL;
 
 /**
  * The GeodeRedisServer is a server that understands the Redis protocol. As commands are sent to the
@@ -230,6 +230,12 @@ public class GeodeRedisServer {
    * current value of this field is {@code HLL_REGION}.
    */
   public static final String HLL_REGION = "ReDiS_HlL";
+
+  /**
+   * The field that defines the name of the {@link Region} which holds all of the zsets. The
+   * current value of this field is {@code ZSET_REGION}.
+   */
+  public static final String ZSET_REGION = "ReDiS_ZsEtS";
 
   /**
    * The field that defines the name of the {@link Region} which holds all of the Redis meta data.
@@ -411,8 +417,9 @@ public class GeodeRedisServer {
   private void initializeRedis() {
     synchronized (this.cache) {
       Region<ByteArrayWrapper, ByteArrayWrapper> stringsRegion;
-
       Region<ByteArrayWrapper, HyperLogLogPlus> hLLRegion;
+      Region<ByteArrayWrapper, ZSet> zsetRegion;
+
       Region<String, RedisDataType> redisMetaData;
       InternalCache gemFireCache = (InternalCache) cache;
       try {
@@ -425,6 +432,11 @@ public class GeodeRedisServer {
           RegionFactory<ByteArrayWrapper, HyperLogLogPlus> regionFactory =
               gemFireCache.createRegionFactory(this.DEFAULT_REGION_TYPE);
           hLLRegion = regionFactory.create(HLL_REGION);
+        }
+        if ((zsetRegion = cache.getRegion(ZSET_REGION)) == null) {
+          RegionFactory<ByteArrayWrapper, ZSet> regionFactory =
+                  gemFireCache.createRegionFactory(this.DEFAULT_REGION_TYPE);
+          zsetRegion = regionFactory.create(ZSET_REGION);
         }
         if ((redisMetaData = cache.getRegion(REDIS_META_DATA_REGION)) == null) {
           AttributesFactory af = new AttributesFactory();
@@ -441,10 +453,11 @@ public class GeodeRedisServer {
         assErr.initCause(e);
         throw assErr;
       }
-      this.regionCache = new RegionProvider(stringsRegion, hLLRegion, redisMetaData,
+      this.regionCache = new RegionProvider(stringsRegion, hLLRegion, zsetRegion, redisMetaData,
           expirationFutures, expirationExecutor, this.DEFAULT_REGION_TYPE);
       redisMetaData.put(REDIS_META_DATA_REGION, RedisDataType.REDIS_PROTECTED);
       redisMetaData.put(HLL_REGION, RedisDataType.REDIS_PROTECTED);
+      redisMetaData.put(ZSET_REGION, RedisDataType.REDIS_PROTECTED);
       redisMetaData.put(STRING_REGION, RedisDataType.REDIS_PROTECTED);
     }
     checkForRegions();
@@ -457,7 +470,7 @@ public class GeodeRedisServer {
       RedisDataType type = entry.getValue();
       Region<?, ?> newRegion = cache.getRegion(regionName);
       if (newRegion == null && type != RedisDataType.REDIS_STRING && type != RedisDataType.REDIS_HLL
-          && type != RedisDataType.REDIS_PROTECTED) {
+          && type != RedisDataType.REDIS_ZSET && type != RedisDataType.REDIS_PROTECTED) {
         try {
           this.regionCache
               .createRemoteRegionReferenceLocally(Coder.stringToByteArrayWrapper(regionName), type);

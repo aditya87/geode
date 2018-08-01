@@ -29,7 +29,7 @@ import org.apache.geode.redis.internal.RedisDataType;
 
 public class ZAddExecutor extends SortedSetExecutor {
 
-  private final String ERROR_NOT_NUMERICAL = "The inteded score is not a float";
+  private final String ERROR_NOT_NUMERICAL = "The intended score is not a float";
 
 
   @Override
@@ -43,45 +43,27 @@ public class ZAddExecutor extends SortedSetExecutor {
 
     ByteArrayWrapper key = command.getKey();
     int numberOfAdds = 0;
+    Map<ByteArrayWrapper, DoubleWrapper> tempMap = new HashMap<ByteArrayWrapper, DoubleWrapper>();
+    for (int i = 2; i < commandElems.size(); i++) {
+      byte[] scoreArray = commandElems.get(i++);
+      byte[] memberArray = commandElems.get(i);
 
-    if (commandElems.size() > 4) {
-      Map<ByteArrayWrapper, DoubleWrapper> map = new HashMap<ByteArrayWrapper, DoubleWrapper>();
-      for (int i = 2; i < commandElems.size(); i++) {
-        byte[] scoreArray = commandElems.get(i++);
-        byte[] memberArray = commandElems.get(i);
-
-        Double score;
-        try {
-          score = Coder.bytesToDouble(scoreArray);
-        } catch (NumberFormatException e) {
-          command.setResponse(
-              Coder.getErrorResponse(context.getByteBufAllocator(), ERROR_NOT_NUMERICAL));
-          return;
-        }
-
-        map.put(new ByteArrayWrapper(memberArray), new DoubleWrapper(score));
-        numberOfAdds++;
-      }
-      Region<ByteArrayWrapper, DoubleWrapper> keyRegion =
-          getOrCreateRegion(context, key, RedisDataType.REDIS_SORTEDSET);
-      keyRegion.putAll(map);
-    } else {
-      byte[] scoreArray = commandElems.get(2);
-      byte[] memberArray = commandElems.get(3);
       Double score;
       try {
         score = Coder.bytesToDouble(scoreArray);
       } catch (NumberFormatException e) {
         command.setResponse(
-            Coder.getErrorResponse(context.getByteBufAllocator(), ERROR_NOT_NUMERICAL));
+                Coder.getErrorResponse(context.getByteBufAllocator(), ERROR_NOT_NUMERICAL));
         return;
       }
-      Region<ByteArrayWrapper, DoubleWrapper> keyRegion =
-          getOrCreateRegion(context, key, RedisDataType.REDIS_SORTEDSET);
-      Object oldVal = keyRegion.put(new ByteArrayWrapper(memberArray), new DoubleWrapper(score));
 
-      if (oldVal == null)
-        numberOfAdds = 1;
+      tempMap.put(new ByteArrayWrapper(memberArray), new DoubleWrapper(score));
+    }
+
+    Region<ByteArrayWrapper, DoubleWrapper> keyRegion = getOrCreateRegion(context, key, RedisDataType.REDIS_SORTEDSET);
+    for (ByteArrayWrapper m : tempMap.keySet()) {
+      Object oldVal = keyRegion.put(m, tempMap.get(m));
+      if (oldVal == null) numberOfAdds++;
     }
 
     command.setResponse(Coder.getIntegerResponse(context.getByteBufAllocator(), numberOfAdds));

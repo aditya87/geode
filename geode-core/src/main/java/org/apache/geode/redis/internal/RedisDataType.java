@@ -74,12 +74,20 @@ public enum RedisDataType {
   },
 
   /**
+   * Zsets regions
+   */
+  REDIS_ZSET {
+    @Override
+    public String toString() {return "zset"; }
+  },
+
+  /**
    * SortedSets Regions
    */
   REDIS_SORTEDSET {
     @Override
     public String toString() {
-      return "zset";
+      return "zset0";
     }
   },
 

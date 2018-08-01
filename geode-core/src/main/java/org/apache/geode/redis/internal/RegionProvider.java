@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
@@ -72,6 +73,12 @@ public class RegionProvider implements Closeable {
   private final Region<ByteArrayWrapper, ByteArrayWrapper> stringsRegion;
 
   /**
+   * This is the {@link RedisDataType#REDIS_STRING} {@link Region}. This is the Region that stores
+   * all zsets
+   */
+  private final Region<ByteArrayWrapper, ZSet> zsetRegion;
+
+  /**
    * This is the {@link RedisDataType#REDIS_HLL} {@link Region}. This is the Region that stores all
    * HyperLogLog contents
    */
@@ -89,6 +96,7 @@ public class RegionProvider implements Closeable {
 
   public RegionProvider(Region<ByteArrayWrapper, ByteArrayWrapper> stringsRegion,
       Region<ByteArrayWrapper, HyperLogLogPlus> hLLRegion,
+      Region<ByteArrayWrapper, ZSet> zsetRegion,
       Region<String, RedisDataType> redisMetaRegion,
       ConcurrentMap<ByteArrayWrapper, ScheduledFuture<?>> expirationsMap,
       ScheduledExecutorService expirationExecutor, RegionShortcut defaultShortcut) {
@@ -97,6 +105,7 @@ public class RegionProvider implements Closeable {
     this.regions = new ConcurrentHashMap<>();
     this.stringsRegion = stringsRegion;
     this.hLLRegion = hLLRegion;
+    this.zsetRegion = zsetRegion;
     this.redisMetaRegion = redisMetaRegion;
     this.cache = GemFireCacheImpl.getInstance();
     this.queryService = cache.getQueryService();
@@ -449,6 +458,8 @@ public class RegionProvider implements Closeable {
   public Region<ByteArrayWrapper, HyperLogLogPlus> gethLLRegion() {
     return this.hLLRegion;
   }
+
+  public Region<ByteArrayWrapper, ZSet> getZsetRegion() { return this.zsetRegion; }
 
   private RedisDataType getRedisDataType(String key) {
     return this.redisMetaRegion.get(key);
