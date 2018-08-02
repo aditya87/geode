@@ -14,10 +14,6 @@
  */
 package org.apache.geode.redis.internal.executor.sortedset;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.geode.cache.Region;
 import org.apache.geode.redis.internal.ByteArrayWrapper;
 import org.apache.geode.redis.internal.Coder;
@@ -25,7 +21,11 @@ import org.apache.geode.redis.internal.Command;
 import org.apache.geode.redis.internal.DoubleWrapper;
 import org.apache.geode.redis.internal.ExecutionHandlerContext;
 import org.apache.geode.redis.internal.RedisConstants.ArityDef;
-import org.apache.geode.redis.internal.RedisDataType;
+import org.apache.geode.redis.internal.ZSet;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ZAddExecutor extends SortedSetExecutor {
 
@@ -41,8 +41,6 @@ public class ZAddExecutor extends SortedSetExecutor {
       return;
     }
 
-    ByteArrayWrapper key = command.getKey();
-    int numberOfAdds = 0;
     Map<ByteArrayWrapper, DoubleWrapper> tempMap = new HashMap<ByteArrayWrapper, DoubleWrapper>();
     for (int i = 2; i < commandElems.size(); i++) {
       byte[] scoreArray = commandElems.get(i++);
@@ -60,11 +58,20 @@ public class ZAddExecutor extends SortedSetExecutor {
       tempMap.put(new ByteArrayWrapper(memberArray), new DoubleWrapper(score));
     }
 
-    Region<ByteArrayWrapper, DoubleWrapper> keyRegion = getOrCreateRegion(context, key, RedisDataType.REDIS_SORTEDSET);
+    ByteArrayWrapper key = command.getKey();
+    Region<ByteArrayWrapper, ZSet> zSetRegion = context.getRegionProvider().getZsetRegion();
+    ZSet zset = new ZSet();
+    if (zSetRegion.containsKey(key)) {
+      zset = zSetRegion.get(key);
+    }
+
+    int numberOfAdds = 0;
     for (ByteArrayWrapper m : tempMap.keySet()) {
-      Object oldVal = keyRegion.put(m, tempMap.get(m));
+      Object oldVal = zset.insert(tempMap.get(m).score, m.toString());
       if (oldVal == null) numberOfAdds++;
     }
+
+    zSetRegion.put(key, zset);
 
     command.setResponse(Coder.getIntegerResponse(context.getByteBufAllocator(), numberOfAdds));
   }

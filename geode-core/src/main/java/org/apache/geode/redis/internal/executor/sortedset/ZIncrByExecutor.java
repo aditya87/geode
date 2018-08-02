@@ -14,16 +14,15 @@
  */
 package org.apache.geode.redis.internal.executor.sortedset;
 
-import java.util.List;
-
 import org.apache.geode.cache.Region;
 import org.apache.geode.redis.internal.ByteArrayWrapper;
 import org.apache.geode.redis.internal.Coder;
 import org.apache.geode.redis.internal.Command;
-import org.apache.geode.redis.internal.DoubleWrapper;
 import org.apache.geode.redis.internal.ExecutionHandlerContext;
 import org.apache.geode.redis.internal.RedisConstants.ArityDef;
-import org.apache.geode.redis.internal.RedisDataType;
+import org.apache.geode.redis.internal.ZSet;
+
+import java.util.List;
 
 public class ZIncrByExecutor extends SortedSetExecutor {
 
@@ -40,14 +39,15 @@ public class ZIncrByExecutor extends SortedSetExecutor {
     }
 
     ByteArrayWrapper key = command.getKey();
+    Region<ByteArrayWrapper, ZSet> zSetRegion = context.getRegionProvider().getZsetRegion();
+    ZSet zset = new ZSet();
+    if (zSetRegion.containsKey(key)) {
+      zset = zSetRegion.get(key);
+    }
 
-    Region<ByteArrayWrapper, DoubleWrapper> keyRegion =
-        getOrCreateRegion(context, key, RedisDataType.REDIS_SORTEDSET);
-
-    ByteArrayWrapper member = new ByteArrayWrapper(commandElems.get(3));
+    String member = (new ByteArrayWrapper(commandElems.get(3))).toString();
 
     double incr;
-
     try {
       byte[] incrArray = commandElems.get(2);
       incr = Coder.bytesToDouble(incrArray);
@@ -56,21 +56,25 @@ public class ZIncrByExecutor extends SortedSetExecutor {
       return;
     }
 
-    DoubleWrapper score = keyRegion.get(member);
-
+    Double score = zset.getScore(member);
     if (score == null) {
-      keyRegion.put(member, new DoubleWrapper(incr));
+      zset.insert(incr, member);
+      zSetRegion.put(key, zset);
       respondBulkStrings(command, context, incr);
       return;
     }
-    double result = score.score + incr;
+
+    double result = score + incr;
     if (Double.isNaN(result)) {
       command.setResponse(Coder.getErrorResponse(context.getByteBufAllocator(), ERROR_NAN));
       return;
     }
-    score.score = result;
-    keyRegion.put(member, score);
-    respondBulkStrings(command, context, score.score);
+
+    score = result;
+    zset.insert(score, member);
+    zSetRegion.put(key, zset);
+
+    respondBulkStrings(command, context, score);
   }
 
 }

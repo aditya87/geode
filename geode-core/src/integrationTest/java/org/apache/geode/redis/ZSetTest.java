@@ -1,6 +1,7 @@
 package org.apache.geode.redis;
 
 import org.apache.geode.internal.tcp.ByteBufferInputStream;
+import org.apache.geode.redis.internal.Pair;
 import org.apache.geode.redis.internal.ZSet;
 import org.apache.geode.redis.internal.ZSetRangeException;
 import org.apache.geode.test.junit.categories.RedisTest;
@@ -41,29 +42,96 @@ public class ZSetTest {
         zset.insert(12.0, "l");
         zset.insert(16.0, "p");
 
-        List<String> members = zset.getMembersInRange(1, 3);
+        List<Pair<String, Double>> members = zset.getMembersInRange(1, 3);
         assertEquals(3, members.size());
-        assertEquals("e", members.get(0));
-        assertEquals("l", members.get(1));
-        assertEquals("p", members.get(2));
+        assertEquals("e", members.get(0).fst);
+        assertEquals("l", members.get(1).fst);
+        assertEquals("p", members.get(2).fst);
+
+        members = zset.getMembersInRange(1, 4);
+        assertEquals(3, members.size());
+        assertEquals("e", members.get(0).fst);
+        assertEquals("l", members.get(1).fst);
+        assertEquals("p", members.get(2).fst);
+
+        members = zset.getMembersInRange(1, -1);
+        assertEquals(3, members.size());
+        assertEquals("e", members.get(0).fst);
+        assertEquals("l", members.get(1).fst);
+        assertEquals("p", members.get(2).fst);
+
+        members = zset.getMembersInRange(1, 2);
+        assertEquals(2, members.size());
+        assertEquals("e", members.get(0).fst);
+        assertEquals("l", members.get(1).fst);
+
+        members = zset.getMembersInRange(1, -2);
+        assertEquals(2, members.size());
+        assertEquals("e", members.get(0).fst);
+        assertEquals("l", members.get(1).fst);
+
+        members = zset.getMembersInRange(-1, 5);
+        assertEquals(1, members.size());
+        assertEquals("p", members.get(0).fst);
+
+        members = zset.getMembersInRange(1, 0);
+        assertEquals(0, members.size());
+
+        members = zset.getMembersInRange(1, -5);
+        assertEquals(0, members.size());
+
+        members = zset.getMembersInRange(5, 6);
+        assertEquals(0, members.size());
     }
 
     @Test
-    public void testZSetGetMembersInRange_ThrowsOutOfBoundsError() {
+    public void testZSetGetMembersInRevRange() throws ZSetRangeException {
         ZSet zset = new ZSet();
         zset.insert(1.0, "a");
         zset.insert(5.0, "e");
         zset.insert(12.0, "l");
         zset.insert(16.0, "p");
 
-        Exception thrown = null;
-        try {
-            zset.getMembersInRange(1, 4);
-        } catch(Exception e) {
-            thrown = e;
-        }
+        List<Pair<String, Double>> members = zset.getMembersInRevRange(1, 3);
+        assertEquals(3, members.size());
+        assertEquals("l", members.get(0).fst);
+        assertEquals("e", members.get(1).fst);
+        assertEquals("a", members.get(2).fst);
 
-        assertTrue(thrown instanceof ZSetRangeException);
+        members = zset.getMembersInRevRange(1, 4);
+        assertEquals(3, members.size());
+        assertEquals("l", members.get(0).fst);
+        assertEquals("e", members.get(1).fst);
+        assertEquals("a", members.get(2).fst);
+
+        members = zset.getMembersInRevRange(1, -1);
+        assertEquals(3, members.size());
+        assertEquals("l", members.get(0).fst);
+        assertEquals("e", members.get(1).fst);
+        assertEquals("a", members.get(2).fst);
+
+        members = zset.getMembersInRevRange(1, 2);
+        assertEquals(2, members.size());
+        assertEquals("l", members.get(0).fst);
+        assertEquals("e", members.get(1).fst);
+
+        members = zset.getMembersInRevRange(1, -2);
+        assertEquals(2, members.size());
+        assertEquals("l", members.get(0).fst);
+        assertEquals("e", members.get(1).fst);
+
+        members = zset.getMembersInRevRange(-1, 5);
+        assertEquals(1, members.size());
+        assertEquals("a", members.get(0).fst);
+
+        members = zset.getMembersInRevRange(1, 0);
+        assertEquals(0, members.size());
+
+        members = zset.getMembersInRevRange(1, -5);
+        assertEquals(0, members.size());
+
+        members = zset.getMembersInRevRange(5, 6);
+        assertEquals(0, members.size());
     }
 
     @Test
@@ -74,34 +142,97 @@ public class ZSetTest {
         zset.insert(12.0, "l");
         zset.insert(16.0, "p");
 
-        List<String> members = zset.getMembersInRangeByScore(5.0, 16.0);
+        List<Pair<String, Double>> members = zset.getMembersInRangeByScore(5.0, 16.0,
+                true, true);
         assertEquals(3, members.size());
-        assertEquals("e", members.get(0));
-        assertEquals("l", members.get(1));
-        assertEquals("p", members.get(2));
+        assertEquals("e", members.get(0).fst);
+        assertEquals("l", members.get(1).fst);
+        assertEquals("p", members.get(2).fst);
 
-        members = zset.getMembersInRangeByScore(1.0, 12.0);
+        members = zset.getMembersInRangeByScore(1.0, 12.0,
+                true, true);
         assertEquals(3, members.size());
-        assertEquals("a", members.get(0));
-        assertEquals("e", members.get(1));
-        assertEquals("l", members.get(2));
+        assertEquals("a", members.get(0).fst);
+        assertEquals("e", members.get(1).fst);
+        assertEquals("l", members.get(2).fst);
+
+        members = zset.getMembersInRangeByScore(-Double.MAX_VALUE, Double.MAX_VALUE,
+                true, true);
+        assertEquals(4, members.size());
+        assertEquals("a", members.get(0).fst);
+        assertEquals("e", members.get(1).fst);
+        assertEquals("l", members.get(2).fst);
+        assertEquals("p", members.get(3).fst);
+    }
+
+    @Test
+    public void testZSetGetMembersInRangeScoreExclusive() {
+        ZSet zset = new ZSet();
+        zset.insert(1.0, "a");
+        zset.insert(5.0, "e");
+        zset.insert(12.0, "l");
+        zset.insert(16.0, "p");
+
+        List<Pair<String, Double>> members = zset.getMembersInRangeByScore(5.0, 16.0,
+                false, true);
+        assertEquals(2, members.size());
+        assertEquals("l", members.get(0).fst);
+        assertEquals("p", members.get(1).fst);
+
+        members = zset.getMembersInRangeByScore(1.0, 12.0,
+                true, false);
+        assertEquals(2, members.size());
+        assertEquals("a", members.get(0).fst);
+        assertEquals("e", members.get(1).fst);
     }
 
     @Test
     public void testZSetGetMembersInRangeScoreTie() {
         ZSet zset = new ZSet();
         zset.insert(1.0, "a");
-        zset.insert(5.0, "e");
         zset.insert(5.0, "f");
+        zset.insert(5.0, "e");
         zset.insert(12.0, "l");
         zset.insert(16.0, "p");
 
-        List<String> members = zset.getMembersInRangeByScore(5.0, 16.0);
+        List<Pair<String, Double>> members = zset.getMembersInRangeByScore(5.0, 16.0,
+                true, true);
         assertEquals(4, members.size());
-        assertEquals("e", members.get(0));
-        assertEquals("f", members.get(1));
-        assertEquals("l", members.get(2));
-        assertEquals("p", members.get(3));
+        assertEquals("e", members.get(0).fst);
+        assertEquals("f", members.get(1).fst);
+        assertEquals("l", members.get(2).fst);
+        assertEquals("p", members.get(3).fst);
+
+        zset = new ZSet();
+        zset.insert(5.0, "e");
+        zset.insert(5.0, "l");
+        zset.insert(16.0, "p");
+        members = zset.getMembersInRangeByScore(5.0, 16.0,
+                true, true);
+        assertEquals(3, members.size());
+        assertEquals("e", members.get(0).fst);
+        assertEquals("l", members.get(1).fst);
+        assertEquals("p", members.get(2).fst);
+
+        members = zset.getMembersInRangeByScore(5.0, 16.0,
+                false, true);
+        assertEquals(1, members.size());
+        assertEquals("p", members.get(0).fst);
+
+        zset = new ZSet();
+        zset.insert(5.0, "e");
+        zset.insert(16.0, "l");
+        zset.insert(16.0, "p");
+        members = zset.getMembersInRangeByScore(14.0, 16.0,
+                true, true);
+        assertEquals(2, members.size());
+        assertEquals("l", members.get(0).fst);
+        assertEquals("p", members.get(1).fst);
+
+        members = zset.getMembersInRangeByScore(5.0, 16.0,
+                true, false);
+        assertEquals(1, members.size());
+        assertEquals("e", members.get(0).fst);
     }
 
     @Test
@@ -112,19 +243,22 @@ public class ZSetTest {
         zset.insert(5.0, "l");
         zset.insert(16.0, "p");
 
-        List<String> members = zset.getMembersInRangeByScore(5.0, 16.0);
+        List<Pair<String, Double>> members = zset.getMembersInRangeByScore(5.0, 16.0,
+                true, true);
         assertEquals(3, members.size());
-        assertEquals("e", members.get(0));
-        assertEquals("l", members.get(1));
-        assertEquals("p", members.get(2));
+        assertEquals("e", members.get(0).fst);
+        assertEquals("l", members.get(1).fst);
+        assertEquals("p", members.get(2).fst);
 
-        zset.insert(13.0, "e");
+        Double old = zset.insert(13.0, "e");
 
-        members = zset.getMembersInRangeByScore(5.0, 16.0);
+        members = zset.getMembersInRangeByScore(5.0, 16.0,
+                true, true);
         assertEquals(3, members.size());
-        assertEquals("l", members.get(0));
-        assertEquals("e", members.get(1));
-        assertEquals("p", members.get(2));
+        assertEquals("l", members.get(0).fst);
+        assertEquals("e", members.get(1).fst);
+        assertEquals("p", members.get(2).fst);
+        assertEquals(5.0, old, 0.0);
     }
 
     @Test
@@ -135,12 +269,13 @@ public class ZSetTest {
         zset.insert(12.0, "l");
         zset.insert(16.0, "p");
 
-        List<String> members = zset.getMembersInRangeByScore(0.0, 20.0);
+        List<Pair<String, Double>> members = zset.getMembersInRangeByScore(0.0, 20.0,
+                true, true);
         assertEquals(4, members.size());
-        assertEquals("a", members.get(0));
-        assertEquals("e", members.get(1));
-        assertEquals("l", members.get(2));
-        assertEquals("p", members.get(3));
+        assertEquals("a", members.get(0).fst);
+        assertEquals("e", members.get(1).fst);
+        assertEquals("l", members.get(2).fst);
+        assertEquals("p", members.get(3).fst);
     }
 
     @Test
@@ -160,12 +295,13 @@ public class ZSetTest {
         ByteBufferInputStream bbis = new ByteBufferInputStream(bb);
         ZSet zset2 = new ZSet();
         zset2.fromData(bbis);
-        List<String> members = zset2.getMembersInRangeByScore(0.0, 20.0);
+        List<Pair<String, Double>> members = zset2.getMembersInRangeByScore(0.0, 20.0,
+                true, true);
         assertEquals(4, members.size());
-        assertEquals("a", members.get(0));
-        assertEquals("e", members.get(1));
-        assertEquals("l", members.get(2));
-        assertEquals("p", members.get(3));
+        assertEquals("a", members.get(0).fst);
+        assertEquals("e", members.get(1).fst);
+        assertEquals("l", members.get(2).fst);
+        assertEquals("p", members.get(3).fst);
     }
 
     @Test

@@ -81,7 +81,6 @@ public class SortedSetsJUnitTest {
       scoreMembers.put(randString(), rand.nextDouble());
 
     jedis.zadd(key, scoreMembers);
-    int k = 0;
     for (String entry : scoreMembers.keySet())
       assertNotNull(jedis.zscore(key, entry));
 
@@ -197,6 +196,7 @@ public class SortedSetsJUnitTest {
     assertEquals(infResult, Double.valueOf(Double.POSITIVE_INFINITY));
   }
 
+  @Test
   public void testZRangeByScore() {
     Double min;
     Double max;
@@ -228,6 +228,7 @@ public class SortedSetsJUnitTest {
     }
   }
 
+  @Test
   public void testZRevRangeByScore() {
     Double min;
     Double max;

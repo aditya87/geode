@@ -14,27 +14,19 @@
  */
 package org.apache.geode.redis.internal.executor.sortedset;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-
 import org.apache.geode.cache.Region;
-import org.apache.geode.cache.query.FunctionDomainException;
-import org.apache.geode.cache.query.NameResolutionException;
-import org.apache.geode.cache.query.Query;
-import org.apache.geode.cache.query.QueryInvocationTargetException;
-import org.apache.geode.cache.query.SelectResults;
-import org.apache.geode.cache.query.Struct;
-import org.apache.geode.cache.query.TypeMismatchException;
 import org.apache.geode.redis.internal.ByteArrayWrapper;
 import org.apache.geode.redis.internal.Coder;
 import org.apache.geode.redis.internal.Command;
-import org.apache.geode.redis.internal.DoubleWrapper;
 import org.apache.geode.redis.internal.ExecutionHandlerContext;
 import org.apache.geode.redis.internal.Extendable;
+import org.apache.geode.redis.internal.Pair;
 import org.apache.geode.redis.internal.RedisConstants.ArityDef;
-import org.apache.geode.redis.internal.RedisDataType;
-import org.apache.geode.redis.internal.executor.SortedSetQuery;
+import org.apache.geode.redis.internal.ZSet;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class ZRangeByScoreExecutor extends SortedSetExecutor implements Extendable {
 
@@ -92,15 +84,12 @@ public class ZRangeByScoreExecutor extends SortedSetExecutor implements Extendab
           }
         }
       }
-
     }
 
     ByteArrayWrapper key = command.getKey();
+    Region<ByteArrayWrapper, ZSet> zsetRegion = context.getRegionProvider().getZsetRegion();
 
-    checkDataType(key, RedisDataType.REDIS_SORTEDSET, context);
-    Region<ByteArrayWrapper, DoubleWrapper> keyRegion = getRegion(context, key);
-
-    if (keyRegion == null) {
+    if (!zsetRegion.containsKey(key)) {
       command.setResponse(Coder.getEmptyArrayResponse(context.getByteBufAllocator()));
       return;
     }
@@ -134,72 +123,27 @@ public class ZRangeByScoreExecutor extends SortedSetExecutor implements Extendab
       return;
     }
 
-    Collection<?> list;
-    try {
-      list = getKeys(key, keyRegion, context, start, stop, startInclusive, stopInclusive, offset,
-          limit);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    ZSet zset = zsetRegion.get(key);
+    List<Pair<String, Double>> results = zset.getMembersInRangeByScore(start, stop, startInclusive, stopInclusive);
 
-    if (list == null)
-      command.setResponse(Coder.getEmptyArrayResponse(context.getByteBufAllocator()));
-    else
-      command.setResponse(Coder.zRangeResponse(context.getByteBufAllocator(), list, withScores));
-  }
-
-  private Collection<?> getKeys(ByteArrayWrapper key,
-      Region<ByteArrayWrapper, DoubleWrapper> keyRegion, ExecutionHandlerContext context,
-      double start, double stop, boolean startInclusive, boolean stopInclusive, int offset,
-      int limit) throws FunctionDomainException, TypeMismatchException, NameResolutionException,
-      QueryInvocationTargetException {
-    if (start == Double.POSITIVE_INFINITY || stop == Double.NEGATIVE_INFINITY || start > stop
-        || (start == stop && (!startInclusive || !stopInclusive)))
-      return null;
-    if (start == Double.NEGATIVE_INFINITY && stop == Double.POSITIVE_INFINITY)
-      return new HashSet(keyRegion.entrySet());
-
-    Query query;
-    Object[] params;
     if (isReverse()) {
-      if (startInclusive) {
-        if (stopInclusive) {
-          query = getQuery(key, SortedSetQuery.ZREVRBSSTISI, context);
-        } else {
-          query = getQuery(key, SortedSetQuery.ZREVRBSSTI, context);
-        }
-      } else {
-        if (stopInclusive) {
-          query = getQuery(key, SortedSetQuery.ZREVRBSSI, context);
-        } else {
-          query = getQuery(key, SortedSetQuery.ZREVRBS, context);
-        }
+      List<Pair<String, Double>> revResults = new ArrayList<>();
+      for (int i = results.size() - 1; i >= 0; i--) {
+        revResults.add(results.get(i));
       }
-      params = new Object[] {start, stop, INFINITY_LIMIT};
-    } else {
-      if (startInclusive) {
-        if (stopInclusive) {
-          query = getQuery(key, SortedSetQuery.ZRBSSTISI, context);
-        } else {
-          query = getQuery(key, SortedSetQuery.ZRBSSTI, context);
-        }
-      } else {
-        if (stopInclusive) {
-          query = getQuery(key, SortedSetQuery.ZRBSSI, context);
-        } else {
-          query = getQuery(key, SortedSetQuery.ZRBS, context);
-        }
-      }
-      params = new Object[] {start, stop, INFINITY_LIMIT};
-    }
-    if (limit > 0)
-      params[params.length - 1] = (limit + offset);
 
-    SelectResults<?> results = (SelectResults<?>) query.execute(params);
-    if (offset < results.size())
-      return (Collection<Struct>) results.asList().subList(offset, results.size());
-    else
-      return null;
+      results = revResults;
+    }
+
+    if (limit != -1) {
+      if (offset > results.size() - 1) {
+        results = Collections.emptyList();
+      } else {
+        results = results.subList(offset, Math.min(results.size(), offset + limit));
+      }
+    }
+
+    command.setResponse(Coder.zRangeResponse(context.getByteBufAllocator(), results, withScores));
   }
 
   protected boolean isReverse() {

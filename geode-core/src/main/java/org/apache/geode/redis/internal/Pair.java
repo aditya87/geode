@@ -16,8 +16,8 @@
 package org.apache.geode.redis.internal;
 
 public class Pair<T, U> {
-  T fst;
-  U snd;
+  public T fst;
+  public U snd;
 
   Pair(Object fst, Object snd) {
     this.fst = (T) fst;

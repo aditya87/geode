@@ -14,20 +14,17 @@
  */
 package org.apache.geode.redis.internal.executor.sortedset;
 
-import java.util.List;
-
 import org.apache.geode.cache.Region;
-import org.apache.geode.cache.query.Query;
-import org.apache.geode.cache.query.SelectResults;
 import org.apache.geode.redis.internal.ByteArrayWrapper;
 import org.apache.geode.redis.internal.Coder;
 import org.apache.geode.redis.internal.Command;
-import org.apache.geode.redis.internal.DoubleWrapper;
 import org.apache.geode.redis.internal.ExecutionHandlerContext;
 import org.apache.geode.redis.internal.Extendable;
+import org.apache.geode.redis.internal.Pair;
 import org.apache.geode.redis.internal.RedisConstants.ArityDef;
-import org.apache.geode.redis.internal.RedisDataType;
-import org.apache.geode.redis.internal.executor.SortedSetQuery;
+import org.apache.geode.redis.internal.ZSet;
+
+import java.util.List;
 
 public class ZRangeExecutor extends SortedSetExecutor implements Extendable {
 
@@ -50,20 +47,18 @@ public class ZRangeExecutor extends SortedSetExecutor implements Extendable {
 
     }
 
+    Region<ByteArrayWrapper, ZSet> zSetRegion = context.getRegionProvider().getZsetRegion();
     ByteArrayWrapper key = command.getKey();
 
-    checkDataType(key, RedisDataType.REDIS_SORTEDSET, context);
-    Region<ByteArrayWrapper, DoubleWrapper> keyRegion = getRegion(context, key);
-
-    if (keyRegion == null) {
+    if (!zSetRegion.containsKey(key)) {
       command.setResponse(Coder.getEmptyArrayResponse(context.getByteBufAllocator()));
       return;
     }
 
+    ZSet zset = zSetRegion.get(key);
 
     int start;
     int stop;
-    int sSetSize = keyRegion.size();
 
     try {
       byte[] startArray = commandElems.get(2);
@@ -75,42 +70,11 @@ public class ZRangeExecutor extends SortedSetExecutor implements Extendable {
       return;
     }
 
-    start = getBoundedStartIndex(start, sSetSize);
-    stop = getBoundedEndIndex(stop, sSetSize);
+    List<Pair<String, Double>> results = isReverse() ?
+            zset.getMembersInRevRange(start, stop) :
+            zset.getMembersInRange(start, stop);
 
-    if (start > stop || start == sSetSize) {
-      command.setResponse(Coder.getEmptyArrayResponse(context.getByteBufAllocator()));
-      return;
-    }
-    if (stop == sSetSize)
-      stop--;
-    List<?> list;
-    try {
-      list = getRange(context, key, start, stop);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-
-    command.setResponse(Coder.zRangeResponse(context.getByteBufAllocator(), list, withScores));
-  }
-
-  private List<?> getRange(ExecutionHandlerContext context, ByteArrayWrapper key, int start,
-      int stop) throws Exception {
-    Query query;
-
-    if (isReverse())
-      query = getQuery(key, SortedSetQuery.ZRANGE, context);
-    else
-      query = getQuery(key, SortedSetQuery.ZREVRANGE, context);
-
-    Object[] params = {stop + 1};
-
-    SelectResults<?> results = (SelectResults<?>) query.execute(params);
-
-    List<?> list = results.asList();
-
-    return list.subList(start, stop + 1);
-
+    command.setResponse(Coder.zRangeResponse(context.getByteBufAllocator(), results, withScores));
   }
 
   protected boolean isReverse() {

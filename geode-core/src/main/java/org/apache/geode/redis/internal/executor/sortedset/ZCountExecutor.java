@@ -14,23 +14,15 @@
  */
 package org.apache.geode.redis.internal.executor.sortedset;
 
-import java.util.List;
-
 import org.apache.geode.cache.Region;
-import org.apache.geode.cache.query.FunctionDomainException;
-import org.apache.geode.cache.query.NameResolutionException;
-import org.apache.geode.cache.query.Query;
-import org.apache.geode.cache.query.QueryInvocationTargetException;
-import org.apache.geode.cache.query.SelectResults;
-import org.apache.geode.cache.query.TypeMismatchException;
 import org.apache.geode.redis.internal.ByteArrayWrapper;
 import org.apache.geode.redis.internal.Coder;
 import org.apache.geode.redis.internal.Command;
-import org.apache.geode.redis.internal.DoubleWrapper;
 import org.apache.geode.redis.internal.ExecutionHandlerContext;
 import org.apache.geode.redis.internal.RedisConstants.ArityDef;
-import org.apache.geode.redis.internal.RedisDataType;
-import org.apache.geode.redis.internal.executor.SortedSetQuery;
+import org.apache.geode.redis.internal.ZSet;
+
+import java.util.List;
 
 public class ZCountExecutor extends SortedSetExecutor {
 
@@ -48,12 +40,10 @@ public class ZCountExecutor extends SortedSetExecutor {
     }
 
     ByteArrayWrapper key = command.getKey();
+    Region<ByteArrayWrapper, ZSet> zsetRegion = context.getRegionProvider().getZsetRegion();
 
-    Region<ByteArrayWrapper, DoubleWrapper> keyRegion = getRegion(context, key);
-    checkDataType(key, RedisDataType.REDIS_SORTEDSET, context);
-
-    if (keyRegion == null) {
-      command.setResponse(Coder.getIntegerResponse(context.getByteBufAllocator(), NOT_EXISTS));
+    if (!zsetRegion.containsKey(key)) {
+      command.setResponse(Coder.getEmptyArrayResponse(context.getByteBufAllocator()));
       return;
     }
 
@@ -84,63 +74,9 @@ public class ZCountExecutor extends SortedSetExecutor {
       return;
     }
 
-
-    int count;
-    try {
-      count = getCount(key, keyRegion, context, start, stop, startInclusive, stopInclusive);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-
-
-    command.setResponse(Coder.getIntegerResponse(context.getByteBufAllocator(), count));
-  }
-
-  private int getCount(ByteArrayWrapper key, Region<ByteArrayWrapper, DoubleWrapper> keyRegion,
-      ExecutionHandlerContext context, double start, double stop, boolean startInclusive,
-      boolean stopInclusive) throws FunctionDomainException, TypeMismatchException,
-      NameResolutionException, QueryInvocationTargetException {
-    if (start == Double.NEGATIVE_INFINITY && stop == Double.POSITIVE_INFINITY)
-      return keyRegion.size();
-    else if (start == Double.POSITIVE_INFINITY || stop == Double.NEGATIVE_INFINITY)
-      return 0;
-
-    Query query;
-    Object[] params;
-    if (start == Double.NEGATIVE_INFINITY) {
-      if (stopInclusive) {
-        query = getQuery(key, SortedSetQuery.ZCOUNTNINFI, context);
-      } else {
-        query = getQuery(key, SortedSetQuery.ZCOUNTNINF, context);
-      }
-      params = new Object[] {stop};
-    } else if (stop == Double.POSITIVE_INFINITY) {
-      if (startInclusive) {
-        query = getQuery(key, SortedSetQuery.ZCOUNTPINFI, context);
-      } else {
-        query = getQuery(key, SortedSetQuery.ZCOUNTPINF, context);
-      }
-      params = new Object[] {start};
-    } else {
-      if (startInclusive) {
-        if (stopInclusive) {
-          query = getQuery(key, SortedSetQuery.ZCOUNTSTISI, context);
-        } else {
-          query = getQuery(key, SortedSetQuery.ZCOUNTSTI, context);
-        }
-      } else {
-        if (stopInclusive) {
-          query = getQuery(key, SortedSetQuery.ZCOUNTSI, context);
-        } else {
-          query = getQuery(key, SortedSetQuery.ZCOUNT, context);
-        }
-      }
-      params = new Object[] {start, stop};
-    }
-
-    SelectResults<?> results = (SelectResults<?>) query.execute(params);
-
-    return (Integer) results.asList().get(0);
+    ZSet zset = zsetRegion.get(key);
+    List<?> results = zset.getMembersInRangeByScore(start, stop, startInclusive, stopInclusive);
+    command.setResponse(Coder.getIntegerResponse(context.getByteBufAllocator(), results.size()));
   }
 
 }
