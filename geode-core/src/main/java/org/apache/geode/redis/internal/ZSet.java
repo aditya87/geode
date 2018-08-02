@@ -1,18 +1,44 @@
 package org.apache.geode.redis.internal;
 
+import org.apache.geode.DataSerializable;
+import org.apache.geode.DataSerializer;
+
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class ZSet {
+public class ZSet implements DataSerializable {
     private Map<String, Double> memberMap;
     private List<String> sortedMemberList;
 
     public ZSet() {
         this.memberMap = new HashMap<>();
         this.sortedMemberList = new ArrayList<>();
+    }
+
+    @Override
+    public void toData(DataOutput out) throws IOException {
+        DataSerializer.writeInteger(getSize(), out);
+        for (String member : sortedMemberList) {
+            DataSerializer.writeString(member, out);
+            DataSerializer.writeDouble(getScore(member), out);
+        }
+    }
+
+    @Override
+    public void fromData(DataInput in) throws IOException {
+        int size = DataSerializer.readInteger(in);
+        for (int i = 0; i < size; i++) {
+            String member = DataSerializer.readString(in);
+            Double score = DataSerializer.readDouble(in);
+            memberMap.put(member, score);
+            sortedMemberList.add(member);
+        }
     }
 
     // Used to insert/delete members
@@ -85,7 +111,6 @@ public class ZSet {
 
         return sortedMemberList.subList(lowerBound, upperBound);
     }
-
 
     private int min(int a, int b) {
         if (a <= b) return a;

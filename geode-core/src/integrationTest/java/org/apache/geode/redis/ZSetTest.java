@@ -1,11 +1,16 @@
 package org.apache.geode.redis;
 
+import org.apache.geode.internal.tcp.ByteBufferInputStream;
 import org.apache.geode.redis.internal.ZSet;
 import org.apache.geode.redis.internal.ZSetRangeException;
 import org.apache.geode.test.junit.categories.RedisTest;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.List;
 
 import static org.apache.geode.internal.Assert.assertTrue;
@@ -131,6 +136,31 @@ public class ZSetTest {
         zset.insert(16.0, "p");
 
         List<String> members = zset.getMembersInRangeByScore(0.0, 20.0);
+        assertEquals(4, members.size());
+        assertEquals("a", members.get(0));
+        assertEquals("e", members.get(1));
+        assertEquals("l", members.get(2));
+        assertEquals("p", members.get(3));
+    }
+
+    @Test
+    public void testZSetSerialization() throws IOException {
+        ZSet zset = new ZSet();
+        zset.insert(1.0, "a");
+        zset.insert(5.0, "e");
+        zset.insert(12.0, "l");
+        zset.insert(16.0, "p");
+
+        ByteArrayOutputStream ba = new ByteArrayOutputStream();
+        DataOutputStream out = new DataOutputStream(ba);
+        zset.toData(out);
+        out.flush();
+
+        ByteBuffer bb = ByteBuffer.wrap(ba.toByteArray());
+        ByteBufferInputStream bbis = new ByteBufferInputStream(bb);
+        ZSet zset2 = new ZSet();
+        zset2.fromData(bbis);
+        List<String> members = zset2.getMembersInRangeByScore(0.0, 20.0);
         assertEquals(4, members.size());
         assertEquals("a", members.get(0));
         assertEquals("e", members.get(1));
