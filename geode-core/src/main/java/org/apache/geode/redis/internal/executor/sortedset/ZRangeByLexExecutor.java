@@ -14,29 +14,18 @@
  */
 package org.apache.geode.redis.internal.executor.sortedset;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-
-import io.netty.buffer.ByteBuf;
-
 import org.apache.geode.cache.Region;
-import org.apache.geode.cache.query.FunctionDomainException;
-import org.apache.geode.cache.query.NameResolutionException;
-import org.apache.geode.cache.query.Query;
-import org.apache.geode.cache.query.QueryInvocationTargetException;
-import org.apache.geode.cache.query.SelectResults;
-import org.apache.geode.cache.query.TypeMismatchException;
 import org.apache.geode.redis.internal.ByteArrayWrapper;
 import org.apache.geode.redis.internal.Coder;
 import org.apache.geode.redis.internal.Command;
-import org.apache.geode.redis.internal.DoubleWrapper;
 import org.apache.geode.redis.internal.ExecutionHandlerContext;
+import org.apache.geode.redis.internal.Pair;
 import org.apache.geode.redis.internal.RedisConstants.ArityDef;
-import org.apache.geode.redis.internal.RedisDataType;
-import org.apache.geode.redis.internal.executor.SortedSetQuery;
+import org.apache.geode.redis.internal.ZSet;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class ZRangeByLexExecutor extends SortedSetExecutor {
 
@@ -86,10 +75,9 @@ public class ZRangeByLexExecutor extends SortedSetExecutor {
     }
 
     ByteArrayWrapper key = command.getKey();
-    Region<ByteArrayWrapper, DoubleWrapper> keyRegion =
-        getOrCreateRegion(context, key, RedisDataType.REDIS_SORTEDSET);
+    Region<ByteArrayWrapper, ZSet> zsetRegion = context.getRegionProvider().getZsetRegion();
 
-    if (keyRegion == null) {
+    if (!zsetRegion.containsKey(key)) {
       command.setResponse(Coder.getEmptyArrayResponse(context.getByteBufAllocator()));
       return;
     }
@@ -108,8 +96,7 @@ public class ZRangeByLexExecutor extends SortedSetExecutor {
       startString = startString.substring(1);
       minInclusive = true;
     } else if (minArray[0] != Coder.HYPHEN_ID) {
-      command
-          .setResponse(Coder.getErrorResponse(context.getByteBufAllocator(), ERROR_ILLEGAL_SYNTAX));
+      command.setResponse(Coder.getErrorResponse(context.getByteBufAllocator(), ERROR_ILLEGAL_SYNTAX));
       return;
     }
 
@@ -120,102 +107,24 @@ public class ZRangeByLexExecutor extends SortedSetExecutor {
       stopString = stopString.substring(1);
       maxInclusive = true;
     } else if (maxArray[0] != Coder.PLUS_ID) {
-      command
-          .setResponse(Coder.getErrorResponse(context.getByteBufAllocator(), ERROR_ILLEGAL_SYNTAX));
+      command.setResponse(Coder.getErrorResponse(context.getByteBufAllocator(), ERROR_ILLEGAL_SYNTAX));
       return;
     }
-    Collection<ByteArrayWrapper> list = null;
-    if (!(existsLimit && limit == 0)) {
-      try {
-        list = getRange(key, keyRegion, context, Coder.stringToByteArrayWrapper(startString),
-            Coder.stringToByteArrayWrapper(stopString), minInclusive, maxInclusive, offset, limit);
-      } catch (Exception e) {
-        throw new RuntimeException(e);
+
+    ZSet zset = zsetRegion.get(key);
+
+    List<Pair<String, Double>> results = zset.getMembersInRangeByLex(startString, stopString,
+            minInclusive, maxInclusive);
+
+    if (existsLimit) {
+      if (offset > results.size() - 1) {
+        results = Collections.emptyList();
+      } else {
+        results = results.subList(offset, Math.min(results.size(), offset + limit));
       }
     }
-    if (list == null)
-      command.setResponse(Coder.getEmptyArrayResponse(context.getByteBufAllocator()));
-    else
-      command.setResponse(getCustomBulkStringArrayResponse(list, context));
+
+    List<String> members = results.stream().map(r -> r.fst).collect(Collectors.toList());
+    respondBulkStrings(command, context, members);
   }
-
-  private List<ByteArrayWrapper> getRange(ByteArrayWrapper key,
-      Region<ByteArrayWrapper, DoubleWrapper> keyRegion, ExecutionHandlerContext context,
-      ByteArrayWrapper start, ByteArrayWrapper stop, boolean startInclusive, boolean stopInclusive,
-      int offset, int limit) throws FunctionDomainException, TypeMismatchException,
-      NameResolutionException, QueryInvocationTargetException {
-    if (start.equals("-") && stop.equals("+")) {
-      List<ByteArrayWrapper> l = new ArrayList<ByteArrayWrapper>(keyRegion.keySet());
-      int size = l.size();
-      Collections.sort(l);
-      if (limit == 0)
-        limit += size;
-      l = l.subList(Math.min(size, offset), Math.min(offset + limit, size));
-      return l;
-    } else if (start.equals("+") || stop.equals("-"))
-      return null;
-
-    Query query;
-    Object[] params;
-    if (start.equals("-")) {
-      if (stopInclusive) {
-        query = getQuery(key, SortedSetQuery.ZRANGEBYLEXNINFI, context);
-      } else {
-        query = getQuery(key, SortedSetQuery.ZRANGEBYLEXNINF, context);
-      }
-      params = new Object[] {stop, INFINITY_LIMIT};
-    } else if (stop.equals("+")) {
-      if (startInclusive) {
-        query = getQuery(key, SortedSetQuery.ZRANGEBYLEXPINFI, context);
-      } else {
-        query = getQuery(key, SortedSetQuery.ZRANGEBYLEXPINF, context);
-      }
-      params = new Object[] {start, INFINITY_LIMIT};
-    } else {
-      if (startInclusive) {
-        if (stopInclusive) {
-          query = getQuery(key, SortedSetQuery.ZRANGEBYLEXSTISI, context);
-        } else {
-          query = getQuery(key, SortedSetQuery.ZRANGEBYLEXSTI, context);
-        }
-      } else {
-        if (stopInclusive) {
-          query = getQuery(key, SortedSetQuery.ZRANGEBYLEXSI, context);
-        } else {
-          query = getQuery(key, SortedSetQuery.ZRANGEBYLEX, context);
-        }
-      }
-      params = new Object[] {start, stop, INFINITY_LIMIT};
-    }
-    if (limit > 0)
-      params[params.length - 1] = (limit + offset);
-    SelectResults<ByteArrayWrapper> results =
-        (SelectResults<ByteArrayWrapper>) query.execute(params);
-    List<ByteArrayWrapper> list = results.asList();
-    int size = list.size();
-    return list.subList(Math.min(size, offset), size);
-
-  }
-
-  private ByteBuf getCustomBulkStringArrayResponse(Collection<ByteArrayWrapper> items,
-      ExecutionHandlerContext context) {
-    Iterator<ByteArrayWrapper> it = items.iterator();
-    ByteBuf response = context.getByteBufAllocator().buffer();
-    response.writeByte(Coder.ARRAY_ID);
-    response.writeBytes(Coder.intToBytes(items.size()));
-    response.writeBytes(Coder.CRLFar);
-
-    while (it.hasNext()) {
-      ByteArrayWrapper next = it.next();
-      byte[] byteAr = next.toBytes();
-      response.writeByte(Coder.BULK_STRING_ID);
-      response.writeBytes(Coder.intToBytes(byteAr.length));
-      response.writeBytes(Coder.CRLFar);
-      response.writeBytes(byteAr);
-      response.writeBytes(Coder.CRLFar);
-    }
-
-    return response;
-  }
-
 }

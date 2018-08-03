@@ -262,6 +262,29 @@ public class ZSetTest {
     }
 
     @Test
+    public void testZSetGetMembersInRangeLex() {
+        ZSet zset = new ZSet();
+        zset.insert(0.0, "a");
+        zset.insert(0.0, "e");
+        zset.insert(0.0, "l");
+        zset.insert(0.0, "p");
+
+        List<Pair<String, Double>> members = zset.getMembersInRangeByLex("a", "j",
+                true, true);
+        assertEquals(2, members.size());
+        assertEquals("a", members.get(0).fst);
+        assertEquals("e", members.get(1).fst);
+
+        members = zset.getMembersInRangeByLex("-", "+",
+                true, true);
+        assertEquals(4, members.size());
+        assertEquals("a", members.get(0).fst);
+        assertEquals("e", members.get(1).fst);
+        assertEquals("l", members.get(2).fst);
+        assertEquals("p", members.get(3).fst);
+    }
+
+    @Test
     public void testZSetGetMembersInRangeScoreOutOfBounds() {
         ZSet zset = new ZSet();
         zset.insert(1.0, "a");

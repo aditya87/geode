@@ -87,6 +87,34 @@ public class ZSet implements DataSerializable {
         return l;
     }
 
+    // Used for range-lex calls, this only works if all scores are the same
+    private int getPositionL(String member, boolean goLeftOnEquals) {
+        int l = 0;
+        int r = sortedMemberList.size() - 1;
+
+        while (l <= r) {
+            int mid = (l + r) / 2;
+            String midMember = sortedMemberList.get(mid);
+            int comp;
+
+            // - and + are equivalent to -INF and INF lexicographical scores
+            if (member == "-") {
+                comp = -1;
+            } else if (member == "+") {
+                comp = 1;
+            } else {
+                comp = member.compareTo(midMember);
+            }
+            if (comp < 0 || (comp == 0 && goLeftOnEquals)) {
+                r = mid - 1;
+            } else if (comp > 0 || (comp == 0 && !goLeftOnEquals)) {
+                l = mid + 1;
+            }
+        }
+
+        return l;
+    }
+
     public Double insert(Double score, String member) {
         boolean alreadyExists = memberMap.containsKey(member);
         Double oldValue = null;
@@ -156,6 +184,22 @@ public class ZSet implements DataSerializable {
        boolean leftInclusive, boolean rightInclusive) {
         int lowerBound = getPosition(lowerScore, leftInclusive);
         int upperBound = Math.min(getPosition(upperScore, !rightInclusive),
+                sortedMemberList.size());
+
+        if (lowerBound > upperBound) return Collections.EMPTY_LIST;
+
+        return sortedMemberList.subList(lowerBound, upperBound).stream()
+                .map(member -> {
+                    Pair<String, Double> pair = Pair.of(member, getScore(member));
+                    return pair;
+                })
+                .collect(Collectors.toList());
+    }
+
+    public List<Pair<String, Double>> getMembersInRangeByLex(String lowerMember, String upperMember,
+                                                               boolean leftInclusive, boolean rightInclusive) {
+        int lowerBound = getPositionL(lowerMember, leftInclusive);
+        int upperBound = Math.min(getPositionL(upperMember, !rightInclusive),
                 sortedMemberList.size());
 
         if (lowerBound > upperBound) return Collections.EMPTY_LIST;
