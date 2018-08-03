@@ -14,16 +14,15 @@
  */
 package org.apache.geode.redis.internal.executor.sortedset;
 
-import java.util.List;
-
 import org.apache.geode.cache.Region;
 import org.apache.geode.redis.internal.ByteArrayWrapper;
 import org.apache.geode.redis.internal.Coder;
 import org.apache.geode.redis.internal.Command;
-import org.apache.geode.redis.internal.DoubleWrapper;
 import org.apache.geode.redis.internal.ExecutionHandlerContext;
 import org.apache.geode.redis.internal.RedisConstants.ArityDef;
-import org.apache.geode.redis.internal.RedisDataType;
+import org.apache.geode.redis.internal.ZSet;
+
+import java.util.List;
 
 public class ZCardExecutor extends SortedSetExecutor {
 
@@ -39,15 +38,14 @@ public class ZCardExecutor extends SortedSetExecutor {
     }
 
     ByteArrayWrapper key = command.getKey();
+    Region<ByteArrayWrapper, ZSet> zsetRegion = context.getRegionProvider().getZsetRegion();
 
-    Region<ByteArrayWrapper, DoubleWrapper> keyRegion = getRegion(context, key);
-    checkDataType(key, RedisDataType.REDIS_SORTEDSET, context);
-
-    if (keyRegion == null)
+    if (!zsetRegion.containsKey(key)) {
       command.setResponse(Coder.getIntegerResponse(context.getByteBufAllocator(), NOT_EXISTS));
-    else
-      command
-          .setResponse(Coder.getIntegerResponse(context.getByteBufAllocator(), keyRegion.size()));
+      return;
+    }
 
+    ZSet zset = zsetRegion.get(key);
+    command.setResponse(Coder.getIntegerResponse(context.getByteBufAllocator(), zset.getSize()));
   }
 }
