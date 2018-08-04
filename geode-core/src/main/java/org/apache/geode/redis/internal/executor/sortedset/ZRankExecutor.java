@@ -14,20 +14,16 @@
  */
 package org.apache.geode.redis.internal.executor.sortedset;
 
-import java.util.List;
-
 import org.apache.geode.cache.Region;
-import org.apache.geode.cache.query.Query;
-import org.apache.geode.cache.query.SelectResults;
 import org.apache.geode.redis.internal.ByteArrayWrapper;
 import org.apache.geode.redis.internal.Coder;
 import org.apache.geode.redis.internal.Command;
-import org.apache.geode.redis.internal.DoubleWrapper;
 import org.apache.geode.redis.internal.ExecutionHandlerContext;
 import org.apache.geode.redis.internal.Extendable;
 import org.apache.geode.redis.internal.RedisConstants.ArityDef;
-import org.apache.geode.redis.internal.RedisDataType;
-import org.apache.geode.redis.internal.executor.SortedSetQuery;
+import org.apache.geode.redis.internal.ZSet;
+
+import java.util.List;
 
 public class ZRankExecutor extends SortedSetExecutor implements Extendable {
 
@@ -41,48 +37,26 @@ public class ZRankExecutor extends SortedSetExecutor implements Extendable {
     }
 
     ByteArrayWrapper key = command.getKey();
+    Region<ByteArrayWrapper, ZSet> zsetRegion = context.getRegionProvider().getZsetRegion();
 
-    checkDataType(key, RedisDataType.REDIS_SORTEDSET, context);
-    Region<ByteArrayWrapper, DoubleWrapper> keyRegion = getRegion(context, key);
-
-    if (keyRegion == null) {
+    if (!zsetRegion.containsKey(key)) {
       command.setResponse(Coder.getNilResponse(context.getByteBufAllocator()));
       return;
     }
 
+    ZSet zset = zsetRegion.get(key);
     ByteArrayWrapper member = new ByteArrayWrapper(commandElems.get(2));
-
-    DoubleWrapper value = keyRegion.get(member);
-
-    if (value == null) {
-      command.setResponse(Coder.getNilResponse(context.getByteBufAllocator()));
-      return;
+    Integer rank = zset.getRank(member.toString());
+    if (rank != null && isReverse()) {
+      rank = zset.getSize() - 1 - rank;
     }
 
-    int rank;
-    try {
-      rank = getRange(context, key, member, value);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    if (rank == null) {
+      command.setResponse(Coder.getNilResponse(context.getByteBufAllocator()));
+      return;
     }
 
     command.setResponse(Coder.getIntegerResponse(context.getByteBufAllocator(), rank));
-  }
-
-  private int getRange(ExecutionHandlerContext context, ByteArrayWrapper key,
-      ByteArrayWrapper member, DoubleWrapper valueWrapper) throws Exception {
-    Query query;
-    if (isReverse())
-      query = getQuery(key, SortedSetQuery.ZREVRANK, context);
-    else
-      query = getQuery(key, SortedSetQuery.ZRANK, context);
-
-    Object[] params = {valueWrapper.score, valueWrapper.score, member};
-
-    SelectResults<?> results = (SelectResults<?>) query.execute(params);
-
-    return (Integer) results.asList().get(0);
-
   }
 
   protected boolean isReverse() {

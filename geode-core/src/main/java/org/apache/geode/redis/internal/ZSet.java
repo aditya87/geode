@@ -42,6 +42,33 @@ public class ZSet implements DataSerializable {
         }
     }
 
+    // Used to find members
+    private Integer getMemberPosition(String member) {
+        int l = 0;
+        int r = sortedMemberList.size() - 1;
+        Double score = getScore(member);
+        if (score == null) {
+            return null;
+        }
+
+        while (l <= r) {
+            int mid = (l + r) / 2;
+            String midMember = sortedMemberList.get(mid);
+            if (member.equals(midMember)) {
+                return mid;
+            }
+
+            double midScore = getScore(midMember);
+            if (score < midScore) {
+                r = mid - 1;
+            } else {
+                l = mid + 1;
+            }
+        }
+
+        return null;
+    }
+
     // Used to insert/delete members
     private int getInsertPosition(String member, Double score) {
         int l = 0;
@@ -115,6 +142,10 @@ public class ZSet implements DataSerializable {
         return l;
     }
 
+    private int correct(int index) {
+        return index >= 0 ? index : sortedMemberList.size() + index;
+    }
+
     public Double insert(Double score, String member) {
         boolean alreadyExists = memberMap.containsKey(member);
         Double oldValue = null;
@@ -129,7 +160,7 @@ public class ZSet implements DataSerializable {
         return oldValue;
     }
 
-    public void remove(String member) {
+    private void remove(String member) {
         double score = getScore(member);
         int position = getInsertPosition(member, score);
         sortedMemberList.remove(position - 1);
@@ -176,10 +207,6 @@ public class ZSet implements DataSerializable {
         return result;
     }
 
-    private int correct(int index) {
-        return index >= 0 ? index : sortedMemberList.size() + index;
-    }
-
     public List<Pair<String, Double>> getMembersInRangeByScore(Double lowerScore, Double upperScore,
        boolean leftInclusive, boolean rightInclusive) {
         int lowerBound = getPosition(lowerScore, leftInclusive);
@@ -210,5 +237,9 @@ public class ZSet implements DataSerializable {
                     return pair;
                 })
                 .collect(Collectors.toList());
+    }
+
+    public Integer getRank(String member) {
+       return getMemberPosition(member);
     }
 }

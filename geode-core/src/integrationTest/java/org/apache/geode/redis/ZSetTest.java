@@ -350,6 +350,19 @@ public class ZSetTest {
         assertTrue(overhead < (4.0/3.0));
     }
 
+    @Test
+    public void testZSetRank() {
+        ZSet zset = new ZSet();
+        zset.insert(1.0, "a");
+        zset.insert(5.0, "e");
+        zset.insert(12.0, "l");
+        zset.insert(16.0, "p");
+
+        assertEquals((Integer)0, zset.getRank("a"));
+        assertEquals((Integer)2, zset.getRank("l"));
+        assertEquals((Integer)3, zset.getRank("p"));
+    }
+
     private void insertN(int n, ZSet zset) {
         double startScore = (double) zset.getSize() + 1.0;
         for (int i = 0; i < n; i++) {
