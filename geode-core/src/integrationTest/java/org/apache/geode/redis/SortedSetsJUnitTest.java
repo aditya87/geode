@@ -325,6 +325,51 @@ public class SortedSetsJUnitTest {
     }
 
     @Test
+    public void testZLexCount() {
+        int min;
+        int max;
+        String charset = "-abcdefghijklmnopqrstuvwxyz+";
+
+        for (int j = 0; j < 2; j++) {
+            do {
+                min = rand.nextInt(27);
+                max = rand.nextInt(27);
+            } while (min > max);
+
+            String left = new String(new char[]{charset.charAt(min)});
+            String right = new String(new char[]{charset.charAt(max)});
+
+            String key = randString();
+            Map<String, Double> scoreMembers = new HashMap<String, Double>();
+            long expected = 0;
+            for (int i = 1; i < 27; i++) {
+                String s = new String(new char[]{charset.charAt(i)});
+                scoreMembers.put(s, 0.0);
+                if (j == 0) {
+                    if ((left == "-" || s.compareTo(left) >= 0) && (right == "+" || s.compareTo(right) <= 0)) {
+                        expected++;
+                    }
+                } else {
+                    if ((left == "-" || s.compareTo(left) > 0) && (right == "+" || s.compareTo(right) < 0)) {
+                        expected++;
+                    }
+                }
+            }
+
+            jedis.zadd(key, scoreMembers);
+            long results;
+            if (j == 0) {
+                results = jedis.zlexcount(key, "[" + left, "[" + right);
+            } else {
+                results = jedis.zlexcount(key, "(" + left, "(" + right);
+            }
+
+            assertEquals(expected, results);
+            jedis.del(key);
+        }
+    }
+
+    @Test
     public void testZRemZScore() {
         Double min;
         Double max;

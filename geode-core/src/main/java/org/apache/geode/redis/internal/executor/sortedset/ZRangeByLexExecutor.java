@@ -112,7 +112,6 @@ public class ZRangeByLexExecutor extends SortedSetExecutor {
     }
 
     ZSet zset = zsetRegion.get(key);
-
     List<Pair<String, Double>> results = zset.getMembersInRangeByLex(startString, stopString,
             minInclusive, maxInclusive);
 
