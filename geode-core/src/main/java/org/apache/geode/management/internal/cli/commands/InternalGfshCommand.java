@@ -72,5 +72,4 @@ public abstract class InternalGfshCommand extends GfshCommand {
   public InternalConfigurationPersistenceService getConfigurationPersistenceService() {
     return (InternalConfigurationPersistenceService) super.getConfigurationPersistenceService();
   }
-
 }

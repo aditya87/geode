@@ -1054,14 +1054,17 @@ public class GemFireCacheImpl implements InternalCache, InternalClientCache, Has
 
     try {
       ConfigurationResponse response = ccLoader.requestConfigurationFromLocators(
-          this.system.getConfig().getGroups(), locatorsWithClusterConfig.keySet());
+          this.system.getName() + "-group", locatorsWithClusterConfig.keySet());
 
       // log the configuration received from the locator
       logger.info("Received cluster configuration from the locator");
       logger.info(response.describeConfig());
+      logger.info("keys: " + response.getRequestedConfiguration().keySet().stream()
+          .reduce("", (x, y) -> x + " " + y));
 
       Configuration clusterConfig =
           response.getRequestedConfiguration().get(ConfigurationPersistenceService.CLUSTER_CONFIG);
+
       Properties clusterSecProperties =
           clusterConfig == null ? new Properties() : clusterConfig.getGemfireProperties();
 
@@ -1242,7 +1245,7 @@ public class GemFireCacheImpl implements InternalCache, InternalClientCache, Has
       ClassPathLoader.getLatest().getJarDeployer().loadPreviouslyDeployedJarsFromDisk();
     }
     ccLoader.applyClusterXmlConfiguration(this, this.configurationResponse,
-        this.system.getConfig().getGroups());
+        this.system.getName() + "-group");
   }
 
   /**

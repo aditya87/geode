@@ -299,15 +299,13 @@ public abstract class AbstractCacheServer implements InternalCacheServer {
   }
 
   public void setGroups(String[] groups) {
-    if (groups == null) {
+    if (groups == null || groups.length == 0) {
       this.groups = CacheServer.DEFAULT_GROUPS;
-    } else if (groups.length > 0) {
+    } else {
       // copy it for isolation
       String[] copy = new String[groups.length];
       System.arraycopy(groups, 0, copy, 0, groups.length);
       this.groups = copy;
-    } else {
-      this.groups = CacheServer.DEFAULT_GROUPS; // keep findbugs happy
     }
   }
 

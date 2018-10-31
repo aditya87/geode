@@ -125,16 +125,26 @@ public class CommandExecutor {
       return resultModel;
     }
 
-    if (parseResult.getParamValue("member") != null) {
-      infoResultModel.addLine(RUN_ON_MEMBER_CHANGE_NOT_PERSISTED);
-      return resultModel;
+    String groupsToConfigure;
+    String memberInput = parseResult.getParamValueAsString("member");
+    if (memberInput != null) {
+      logger.info("Member input: " + memberInput);
+      groupsToConfigure = memberInput + "-group";
+    } else {
+      String groupInput = parseResult.getParamValueAsString("group");
+      logger.info("Group input: " + groupInput);
+      if (groupInput == null) {
+        groupsToConfigure = "cluster";
+      } else {
+        groupsToConfigure = groupInput;
+      }
     }
 
-    String groupInput = parseResult.getParamValueAsString("group");
-    if (groupInput == null) {
-      groupInput = "cluster";
-    }
-    String[] groups = groupInput.split(",");
+    logger.info("Configuring groups: " + groupsToConfigure);
+//    String[] groups = groupsToConfigure.split(",");
+    groupsToConfigure = "server-1-group";
+
+    String[] groups = groupsToConfigure.split(",");
     for (String group : groups) {
       ccService.updateCacheConfig(group, cc -> {
         try {

@@ -578,6 +578,48 @@ public class CreateGatewayReceiverCommandDUnitTest {
   }
 
   /**
+   * GatewayReceiver with given attributes on the given member.
+   */
+  @Test
+  public void testCreateGatewayReceiverOnSingleMemberPersists() {
+    Integer locator1Port = locatorSite1.getPort();
+    Properties props = new Properties();
+//    props.setProperty("groups", "server1-group");
+    server1 = clusterStartupRule.startServerVM(1, props, locator1Port);
+
+    DistributedMember server1Member = getMember(server1.getVM());
+
+    String command =
+        CliStrings.CREATE_GATEWAYRECEIVER + " --" + CliStrings.CREATE_GATEWAYRECEIVER__MANUALSTART
+            + "=true" + " --" + CliStrings.CREATE_GATEWAYRECEIVER__BINDADDRESS + "=localhost"
+            + " --" + CliStrings.CREATE_GATEWAYRECEIVER__STARTPORT + "=10000" + " --"
+            + CliStrings.CREATE_GATEWAYRECEIVER__ENDPORT + "=11000" + " --"
+            + CliStrings.CREATE_GATEWAYRECEIVER__MAXTIMEBETWEENPINGS + "=100000" + " --"
+            + CliStrings.CREATE_GATEWAYRECEIVER__SOCKETBUFFERSIZE + "=512000" + " --"
+            + CliStrings.MEMBER + "=" + server1Member.getId();
+    gfsh.executeAndAssertThat(command).statusIsSuccess()
+        .tableHasColumnWithExactValuesInAnyOrder("Member", SERVER_1)
+        .tableHasColumnWithValuesContaining("Message",
+            "GatewayReceiver created on member \"" + SERVER_1 + "\"");
+
+    server1.invoke(() -> verifyReceiverCreationWithAttributes(false, 10000, 11000, "localhost",
+        100000, 512000, null, GatewayReceiver.DEFAULT_HOSTNAME_FOR_SENDERS));
+
+    server1.getVM().bounce();
+    server1 = clusterStartupRule.startServerVM(1, locator1Port);
+    server1.invoke(() -> {
+      Cache cache = ClusterStartupRule.getCache();
+      assertThat(cache.getGatewayReceivers()).isNotEmpty();
+    });
+
+     server2 = clusterStartupRule.startServerVM(2, locator1Port);
+     server2.invoke(() -> {
+     Cache cache = ClusterStartupRule.getCache();
+     assertThat(cache.getGatewayReceivers()).isEmpty();
+     });
+  }
+
+  /**
    * GatewayReceiver with given attributes on multiple members.
    */
   @Test

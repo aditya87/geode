@@ -968,6 +968,7 @@ public class InternalConfigurationPersistenceService implements ConfigurationPer
     }
     lockSharedConfiguration();
     try {
+      logger.info("Updating config for: " + group);
       CacheConfig cacheConfig = getCacheConfig(group);
       if (cacheConfig == null) {
         cacheConfig = new CacheConfig("1.0");
@@ -983,6 +984,8 @@ public class InternalConfigurationPersistenceService implements ConfigurationPer
       }
       configuration.setCacheXmlContent(jaxbService.marshall(cacheConfig));
       getConfigurationRegion().put(group, configuration);
+      logger.info("Successfully saved config for: " + group + ", "
+          + configuration.getCacheXmlContent());
     } finally {
       unlockSharedConfiguration();
     }

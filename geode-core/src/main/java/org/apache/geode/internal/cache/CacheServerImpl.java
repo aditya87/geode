@@ -716,13 +716,13 @@ public class CacheServerImpl extends AbstractCacheServer implements Distribution
    */
   public String[] getCombinedGroups() {
     ArrayList<String> groupList = new ArrayList<String>();
-    if (!this.isGatewayReceiver) {
-      for (String g : MemberAttributes.parseGroups(null, getSystem().getConfig().getGroups())) {
-        if (!groupList.contains(g)) {
-          groupList.add(g);
-        }
+    // if (!this.isGatewayReceiver) {
+    for (String g : MemberAttributes.parseGroups(null, getSystem().getConfig().getGroups())) {
+      if (!groupList.contains(g)) {
+        groupList.add(g);
       }
     }
+    // }
     for (String g : getGroups()) {
       if (!groupList.contains(g)) {
         groupList.add(g);
