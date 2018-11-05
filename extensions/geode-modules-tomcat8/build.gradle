@@ -18,35 +18,36 @@
 evaluationDependsOn(":geode-core")
 
 dependencies {
-  compile(project(':extensions/geode-modules')) {
+  distributedTestCompile('junit:junit:' + project.'junit.version')
+  compile('mx4j:mx4j:' + project.'mx4j.version')
+  distributedTestCompile('org.httpunit:httpunit:' + project.'httpunit.version')
+  distributedTestCompile('org.apache.tomcat:tomcat-jaspic-api:' + project.'tomcat8.version')
+  compile(project(':geode-core'))
+  compile(project(':extensions:geode-modules')) {
     exclude group: 'org.apache.tomcat'
   }
 
-  compile ('org.apache.tomcat:tomcat-catalina:' + project.'tomcat8.version') {
+  compile('org.apache.tomcat:tomcat-catalina:' + project.'tomcat8.version') {
     exclude module: 'tomcat-annotations-api'
     exclude module: 'tomcat-servlet-api'
   }
-  compile ('org.apache.tomcat:tomcat-coyote:' + project.'tomcat8.version') {
+  compile('org.apache.tomcat:tomcat-coyote:' + project.'tomcat8.version') {
     exclude module: 'tomcat-servlet-api'
   }
-  compile 'org.apache.tomcat:tomcat-juli:' + project.'tomcat8.version'
+  compile('org.apache.tomcat:tomcat-juli:' + project.'tomcat8.version')
+  compile('javax.servlet:javax.servlet-api:' + project.'javax.servlet-api.version')
 
-  testCompile 'org.httpunit:httpunit:' + project.'httpunit.version'
+  distributedTestCompile(project(':geode-dunit')) {
+    exclude module: 'geode-core'
+  }
 
-  testRuntime 'javax.annotation:jsr250-api:' + project.'javax.jsr250-api.version'
-  testRuntime 'javax.ejb:ejb-api:' + project.'javax.ejb-api.version'
-  compile 'javax.servlet:javax.servlet-api:' + '3.1.0'
-  testRuntime 'org.eclipse.persistence:javax.persistence:' + project.'javax.persistence-api.version'
-  testCompile 'javax.security.auth.message:javax.security.auth.message-api:' + '1.1'
+  distributedTestCompile(project(':geode-junit')) {
+    exclude module: 'geode-core'
+  }
+  distributedTestCompile(project(':extensions:geode-modules-test'))
 
-  testCompile project(path: ':geode-junit')
-  testCompile files(project(':geode-core').sourceSets.test.output)
-  testCompile files(project(':extensions/geode-modules').sourceSets.test.output)
-  testCompile files(project(':geode-old-versions').sourceSets.main.output)
-
-  // TODO build - move dunit framework to shared module.
-  distributedTestCompile files(project(':geode-core').sourceSets.distributedTest.output)
-  distributedTestCompile files(project(':geode-core').sourceSets.integrationTest.output)
+  distributedTestRuntime('xerces:xercesImpl:' + project.'xercesImpl.version')
+  distributedTestRuntime('javax.annotation:javax.annotation-api:' + project.'javax-annotation.version')
 
   eclipse.classpath.file {
     whenMerged { classpath ->

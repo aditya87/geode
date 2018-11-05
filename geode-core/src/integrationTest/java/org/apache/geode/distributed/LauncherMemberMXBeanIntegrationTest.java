@@ -15,11 +15,11 @@
 package org.apache.geode.distributed;
 
 import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static javax.management.MBeanServerInvocationHandler.newProxyInstance;
 import static org.apache.geode.distributed.ConfigurationProperties.LOCATORS;
 import static org.apache.geode.distributed.ConfigurationProperties.MCAST_PORT;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 
 import java.util.Properties;
 import java.util.Set;
@@ -44,6 +44,7 @@ import org.apache.geode.internal.process.ProcessType;
 import org.apache.geode.management.JVMMetrics;
 import org.apache.geode.management.MemberMXBean;
 import org.apache.geode.management.OSMetrics;
+import org.apache.geode.test.awaitility.GeodeAwaitility;
 
 /**
  * Integration tests for querying of {@link MemberMXBean} as used in MBeanProcessController to
@@ -119,13 +120,19 @@ public class LauncherMemberMXBeanIntegrationTest extends LauncherIntegrationTest
         (CompositeDataSupport) getPlatformMBeanServer().invoke(mbeanObjectName, "showOSMetrics",
             null, null);
     OSMetrics osMetrics = mbean.showOSMetrics();
+    assertThat(osMetrics).isNotNull();
+
+    Long osMetricsCommittedMemory = osMetrics.getCommittedVirtualMemorySize();
+    float virtualMemoryRatio = osMetricsCommittedMemory.floatValue()
+        / ((Long) cds.get("committedVirtualMemorySize")).floatValue();
+
+    // On windows in particular, the memory value returned from the live bean has often already
+    // changed from the statically recorded value.
+    assertThat(virtualMemoryRatio).isCloseTo(virtualMemoryRatio, within(0.01F));
 
     // Verify conversion from CompositeData to OSMetrics
-    assertThat(osMetrics).isNotNull();
     assertThat(osMetrics.getArch()).isEqualTo(cds.get("arch"));
     assertThat(osMetrics.getAvailableProcessors()).isEqualTo(cds.get("availableProcessors"));
-    assertThat(osMetrics.getCommittedVirtualMemorySize())
-        .isEqualTo(cds.get("committedVirtualMemorySize"));
     assertThat(osMetrics.getFreePhysicalMemorySize()).isEqualTo(cds.get("freePhysicalMemorySize"));
     assertThat(osMetrics.getFreeSwapSpaceSize()).isEqualTo(cds.get("freeSwapSpaceSize"));
     assertThat(osMetrics.getMaxFileDescriptorCount()).isEqualTo(cds.get("maxFileDescriptorCount"));
@@ -202,7 +209,7 @@ public class LauncherMemberMXBeanIntegrationTest extends LauncherIntegrationTest
   }
 
   private void waitForMemberMXBean(final MBeanServer mbeanServer, final ObjectName pattern) {
-    await().atMost(2, MINUTES)
-        .until(() -> assertThat(mbeanServer.queryNames(pattern, null)).isNotEmpty());
+    GeodeAwaitility.await()
+        .untilAsserted(() -> assertThat(mbeanServer.queryNames(pattern, null)).isNotEmpty());
   }
 }

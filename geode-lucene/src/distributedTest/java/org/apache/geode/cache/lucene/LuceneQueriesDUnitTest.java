@@ -17,6 +17,7 @@ package org.apache.geode.cache.lucene;
 import static org.apache.geode.cache.lucene.test.LuceneTestUtilities.DEFAULT_FIELD;
 import static org.apache.geode.cache.lucene.test.LuceneTestUtilities.INDEX_NAME;
 import static org.apache.geode.cache.lucene.test.LuceneTestUtilities.REGION_NAME;
+import static org.apache.geode.test.awaitility.GeodeAwaitility.await;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -96,6 +97,21 @@ public class LuceneQueriesDUnitTest extends LuceneQueriesAccessorBase {
         cache.getCacheTransactionManager().rollback();
       }
     });
+  }
+
+  @Test
+  @Parameters(method = "getListOfRegionTestTypes")
+  public void afterLuceneIndexAndRegionIsCreatedShouldBeAbleToGetIndexingStatus(
+      RegionTestableType regionTestType) throws Exception {
+    createRegionAndIndexForAllDataStores(regionTestType, createIndex);
+    putDataInRegion(accessor);
+    assertTrue(waitForFlushBeforeExecuteTextSearch(accessor, 60000));
+    assertTrue(waitForFlushBeforeExecuteTextSearch(dataStore1, 60000));
+    accessor.invoke(
+        () -> await().untilAsserted(() -> assertFalse(
+            LuceneServiceProvider.get(getCache()).isIndexingInProgress(INDEX_NAME, REGION_NAME))));
+    executeTextSearch(accessor);
+
   }
 
   @Test

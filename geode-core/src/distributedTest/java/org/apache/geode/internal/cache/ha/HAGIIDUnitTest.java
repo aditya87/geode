@@ -16,6 +16,7 @@ package org.apache.geode.internal.cache.ha;
 
 import static org.apache.geode.distributed.ConfigurationProperties.LOCATORS;
 import static org.apache.geode.distributed.ConfigurationProperties.MCAST_PORT;
+import static org.apache.geode.internal.cache.ha.HAGIIDUnitTest.checker;
 import static org.apache.geode.test.dunit.Assert.assertEquals;
 import static org.apache.geode.test.dunit.Assert.assertNotNull;
 import static org.apache.geode.test.dunit.Assert.assertTrue;
@@ -51,8 +52,9 @@ import org.apache.geode.internal.cache.LocalRegion;
 import org.apache.geode.internal.cache.RegionEventImpl;
 import org.apache.geode.internal.cache.tier.sockets.CacheClientNotifier;
 import org.apache.geode.internal.cache.tier.sockets.ClientTombstoneMessage;
-import org.apache.geode.internal.cache.tier.sockets.ConflationDUnitTest;
+import org.apache.geode.internal.cache.tier.sockets.ConflationDUnitTestHelper;
 import org.apache.geode.internal.cache.versions.VersionSource;
+import org.apache.geode.test.awaitility.GeodeAwaitility;
 import org.apache.geode.test.dunit.Assert;
 import org.apache.geode.test.dunit.Host;
 import org.apache.geode.test.dunit.Invoke;
@@ -95,7 +97,7 @@ public class HAGIIDUnitTest extends JUnit4DistributedTestCase {
 
     // start server1
     int PORT1 = ((Integer) server0.invoke(() -> HAGIIDUnitTest.createServer1Cache())).intValue();
-    server0.invoke(() -> ConflationDUnitTest.setIsSlowStart());
+    server0.invoke(() -> ConflationDUnitTestHelper.setIsSlowStart());
     server0.invoke(() -> HAGIIDUnitTest.setSystemProperty());
 
 
@@ -273,7 +275,7 @@ public class HAGIIDUnitTest extends JUnit4DistributedTestCase {
           return null;
         }
       };
-      Wait.waitForCriterion(ev, 60 * 1000, 200, true);
+      GeodeAwaitility.await().untilAsserted(ev);
       // assertIndexDetailsEquals( "key-2",r.getEntry("key-2").getValue());
 
       // wait until we
@@ -288,7 +290,7 @@ public class HAGIIDUnitTest extends JUnit4DistributedTestCase {
           return null;
         }
       };
-      Wait.waitForCriterion(ev, 60 * 1000, 200, true);
+      GeodeAwaitility.await().untilAsserted(ev);
       // assertIndexDetailsEquals( "key-3",r.getEntry("key-3").getValue());
     } catch (Exception ex) {
       Assert.fail("failed while verifyEntries()", ex);
@@ -300,38 +302,38 @@ public class HAGIIDUnitTest extends JUnit4DistributedTestCase {
     // Check whether just the 3 expected updates arrive.
     WaitCriterion ev = new WaitCriterion() {
       public boolean done() {
-        return HAGIIDUnitTest.checker.gotFirst();
+        return checker.gotFirst();
       }
 
       public String description() {
         return null;
       }
     };
-    Wait.waitForCriterion(ev, 90 * 1000, 200, true);
+    GeodeAwaitility.await().untilAsserted(ev);
 
     ev = new WaitCriterion() {
       public boolean done() {
-        return HAGIIDUnitTest.checker.gotSecond();
+        return checker.gotSecond();
       }
 
       public String description() {
         return null;
       }
     };
-    Wait.waitForCriterion(ev, 60 * 1000, 200, true);
+    GeodeAwaitility.await().untilAsserted(ev);
 
     ev = new WaitCriterion() {
       public boolean done() {
-        return HAGIIDUnitTest.checker.gotThird();
+        return checker.gotThird();
       }
 
       public String description() {
         return null;
       }
     };
-    Wait.waitForCriterion(ev, 60 * 1000, 200, true);
+    GeodeAwaitility.await().untilAsserted(ev);
 
-    assertEquals(3, HAGIIDUnitTest.checker.getUpdates());
+    assertEquals(3, checker.getUpdates());
   }
 
   public static void verifyEntriesAfterGII() {
@@ -350,7 +352,7 @@ public class HAGIIDUnitTest extends JUnit4DistributedTestCase {
           return null;
         }
       };
-      Wait.waitForCriterion(ev, 60 * 1000, 200, true);
+      GeodeAwaitility.await().untilAsserted(ev);
 
       // wait until
       // we have a
@@ -364,7 +366,7 @@ public class HAGIIDUnitTest extends JUnit4DistributedTestCase {
           return null;
         }
       };
-      Wait.waitForCriterion(ev, 60 * 1000, 200, true);
+      GeodeAwaitility.await().untilAsserted(ev);
       // assertIndexDetailsEquals( "key-2",r.getEntry("key-2").getValue());
 
       // wait until
@@ -379,7 +381,7 @@ public class HAGIIDUnitTest extends JUnit4DistributedTestCase {
           return null;
         }
       };
-      Wait.waitForCriterion(ev, 60 * 1000, 200, true);
+      GeodeAwaitility.await().untilAsserted(ev);
 
       /*
        * assertIndexDetailsEquals( "value-1",r.getEntry("key-1").getValue());
@@ -398,8 +400,8 @@ public class HAGIIDUnitTest extends JUnit4DistributedTestCase {
 
   @Override
   public final void preTearDown() throws Exception {
-    ConflationDUnitTest.unsetIsSlowStart();
-    Invoke.invokeInEveryVM(ConflationDUnitTest.class, "unsetIsSlowStart");
+    ConflationDUnitTestHelper.unsetIsSlowStart();
+    Invoke.invokeInEveryVM(ConflationDUnitTestHelper.class, "unsetIsSlowStart");
     // close the clients first
     client0.invoke(() -> HAGIIDUnitTest.closeCache());
     // then close the servers

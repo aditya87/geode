@@ -17,11 +17,11 @@ package org.apache.geode.management;
 
 import static org.apache.geode.distributed.ConfigurationProperties.DURABLE_CLIENT_ID;
 import static org.apache.geode.distributed.ConfigurationProperties.DURABLE_CLIENT_TIMEOUT;
+import static org.apache.geode.test.awaitility.GeodeAwaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.Serializable;
 
-import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -55,7 +55,7 @@ public class ClientHealthStatsDUnitTest implements Serializable {
   @Before
   public void before() {
     locator =
-        cluster.startLocatorVM(0, r -> r.withoutClusterConfigurationService().withoutHttpService());
+        cluster.startLocatorVM(0, r -> r.withoutClusterConfigurationService());
     server = cluster.startServerVM(1, s -> s.withRegion(RegionShortcut.REPLICATE, "regionA")
         .withConnectionToLocator(locator.getPort()));
   }
@@ -154,7 +154,7 @@ public class ClientHealthStatsDUnitTest implements Serializable {
     // start durable client1 again
     client1 = createDurableClient(2);
     // wait for full queue dispatch
-    client1.invoke(() -> Awaitility.await().until(() -> lastKeyReceived));
+    client1.invoke(() -> await().until(() -> lastKeyReceived));
 
     // verify the stats
     server.invoke(() -> {

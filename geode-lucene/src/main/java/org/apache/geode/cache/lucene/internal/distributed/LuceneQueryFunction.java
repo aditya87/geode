@@ -49,6 +49,7 @@ import org.apache.geode.internal.cache.PartitionedRegion;
 import org.apache.geode.internal.cache.PrimaryBucketException;
 import org.apache.geode.internal.cache.execute.InternalFunction;
 import org.apache.geode.internal.cache.execute.InternalFunctionInvocationTargetException;
+import org.apache.geode.internal.cache.execute.PartitionedRegionFunctionResultSender;
 import org.apache.geode.internal.logging.LogService;
 
 /**
@@ -65,10 +66,21 @@ public class LuceneQueryFunction implements InternalFunction<LuceneFunctionConte
 
   @Override
   public void execute(FunctionContext<LuceneFunctionContext> context) {
+    if (context.getResultSender() instanceof PartitionedRegionFunctionResultSender) {
+      PartitionedRegionFunctionResultSender resultSender =
+          (PartitionedRegionFunctionResultSender) context.getResultSender();
+      Version clientVersion = resultSender.getClientVersion();
+      if (clientVersion != null) { // is a client server connection
+        if (clientVersion.ordinal() < Version.GEODE_160.ordinal()) {
+          execute(context, true);
+          return;
+        }
+      }
+    }
     execute(context, false);
   }
 
-  private void handleException(LuceneIndexCreationInProgressException ex,
+  private void handleIfRetryNeededOnException(LuceneIndexCreationInProgressException ex,
       RegionFunctionContext ctx) {
     PartitionedRegion userDataRegion = (PartitionedRegion) ctx.getDataSet();
 
@@ -79,16 +91,17 @@ public class LuceneQueryFunction implements InternalFunction<LuceneFunctionConte
     // Hence the query waits for the repositories to be ready instead of throwing the exception
     if (!remoteMembers.isEmpty()) {
       for (InternalDistributedMember remoteMember : remoteMembers) {
-        if (remoteMember.getVersionObject().ordinal() <= Version.GEODE_160.ordinal()) {
+        if (remoteMember.getVersionObject().ordinal() < Version.GEODE_160.ordinal()) {
           // re-execute but wait till indexing is complete
           execute(ctx, true);
           return;
         }
       }
     }
-    // Will return the LuceneIndexCreationInProgressException as the new servers can handle this
-    // exception
-    throw ex;
+    // Cannot send IndexingInProgressException as the function may have been executed a new server
+    // on behalf of an old version client.
+    throw new FunctionException(new LuceneQueryException(
+        "Lucene Index is not available, currently indexing"));
   }
 
   public void execute(FunctionContext<LuceneFunctionContext> context, boolean waitForRepository) {
@@ -156,10 +169,11 @@ public class LuceneQueryFunction implements InternalFunction<LuceneFunctionConte
       throw new InternalFunctionInvocationTargetException(e);
     } catch (LuceneIndexCreationInProgressException ex) {
       if (!waitForRepository) {
-        handleException(ex, ctx);
+        handleIfRetryNeededOnException(ex, ctx);
       } else {
-        logger.debug("The lucene query should have waited for the index to be created");
-        throw ex;
+        logger.warn("The lucene query should have waited for the index to be created");
+        throw new FunctionException(new LuceneQueryException(
+            "Lucene Index is not available, currently indexing"));
       }
     }
   }

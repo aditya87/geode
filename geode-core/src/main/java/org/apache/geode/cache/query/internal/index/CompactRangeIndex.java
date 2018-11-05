@@ -68,7 +68,6 @@ import org.apache.geode.internal.cache.RegionEntry;
 import org.apache.geode.internal.cache.RegionEntryContext;
 import org.apache.geode.internal.cache.entries.VMThinRegionEntryHeap;
 import org.apache.geode.internal.cache.persistence.query.CloseableIterator;
-import org.apache.geode.internal.i18n.LocalizedStrings;
 import org.apache.geode.internal.logging.LogService;
 import org.apache.geode.pdx.internal.PdxString;
 
@@ -154,6 +153,20 @@ public class CompactRangeIndex extends AbstractIndex {
         }
         oldKeyValue.set(new OldKeyValuePair());
         this.evaluator.evaluate(entry, false);
+      }
+    } else if (opCode == REMOVE_DUE_TO_GII_TOMBSTONE_CLEANUP) {
+      // we know in this specific case, that a before op was called and stored oldKey/value
+      // we also know that a regular remove won't work due to the entry no longer being present
+      // We know the old key so let's just remove mapping from the old key
+      if (oldKeyValue != null) {
+        indexStore.removeMapping(oldKeyValue.get().getOldKey(), entry);
+      } else {
+        // rely on reverse map in the index store to figure out the real key
+        indexStore.removeMapping(IndexManager.NULL, entry);
+      }
+    } else if (opCode == CLEAN_UP_THREAD_LOCALS) {
+      if (oldKeyValue != null) {
+        oldKeyValue.remove();
       }
     } else {
       // Need to reset the thread-local map as many puts and destroys might
@@ -737,7 +750,7 @@ public class CompactRangeIndex extends AbstractIndex {
     while (entriesIter.hasNext()) {
       try {
         // Check if query execution on this thread is canceled.
-        QueryMonitor.isQueryExecutionCanceled();
+        QueryMonitor.throwExceptionIfQueryOnCurrentThreadIsCanceled();
         if (IndexManager.testHook != null) {
           if (this.region.getCache().getLogger().fineEnabled()) {
             this.region.getCache().getLogger()
@@ -779,12 +792,8 @@ public class CompactRangeIndex extends AbstractIndex {
                 ok = QueryUtils.applyCondition(iterOps, context);
               }
               if (ok) {
-                if (context != null && context.isCqQueryContext()) {
-                  result.add(new CqEntry(indexEntry.getDeserializedRegionKey(), value));
-                } else {
-                  applyProjection(projAttrib, context, result, value, intermediateResults,
-                      isIntersection);
-                }
+                applyCqOrProjection(projAttrib, context, result, value, intermediateResults,
+                    isIntersection, indexEntry.getDeserializedRegionKey());
                 if (verifyLimit(result, limit)) {
                   observer.limitAppliedAtIndexLevel(this, limit, result);
                   return;
@@ -1448,7 +1457,7 @@ public class CompactRangeIndex extends AbstractIndex {
         QueryInvocationTargetException, IMQException {
       if (QueryMonitor.isLowMemory()) {
         throw new IMQException(
-            LocalizedStrings.IndexCreationMsg_CANCELED_DUE_TO_LOW_MEMORY.toLocalizedString());
+            "Index creation canceled due to low memory");
       }
 
       Object indexKey = this.isFirstItrOnEntry ? this.indexedExpr.evaluate(this.initContext)

@@ -14,6 +14,7 @@
  */
 package org.apache.geode.security;
 
+import static org.apache.geode.internal.cache.GemFireCacheImpl.getInstance;
 import static org.apache.geode.security.SecurityTestUtils.NO_EXCEPTION;
 import static org.apache.geode.security.SecurityTestUtils.REGION_NAME;
 import static org.apache.geode.security.SecurityTestUtils.closeCache;
@@ -25,7 +26,6 @@ import static org.apache.geode.test.dunit.Assert.assertTrue;
 import static org.apache.geode.test.dunit.Assert.fail;
 import static org.apache.geode.test.dunit.Invoke.invokeInEveryVM;
 import static org.apache.geode.test.dunit.LogWriterUtils.getLogWriter;
-import static org.apache.geode.test.dunit.Wait.waitForCriterion;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -52,9 +52,9 @@ import org.apache.geode.cache.query.internal.cq.ClientCQImpl;
 import org.apache.geode.cache.query.internal.cq.CqService;
 import org.apache.geode.cache.query.internal.cq.InternalCqQuery;
 import org.apache.geode.internal.AvailablePortHelper;
-import org.apache.geode.internal.cache.GemFireCacheImpl;
 import org.apache.geode.security.generator.AuthzCredentialGenerator;
 import org.apache.geode.security.generator.CredentialGenerator;
+import org.apache.geode.test.awaitility.GeodeAwaitility;
 import org.apache.geode.test.dunit.SerializableRunnable;
 import org.apache.geode.test.dunit.WaitCriterion;
 import org.apache.geode.test.junit.categories.SecurityTest;
@@ -173,16 +173,15 @@ public class ClientCQPostAuthorizationDUnitTest extends ClientAuthorizationTestC
     }
 
     // Get ports for the servers
-    int[] randomAvailableTCPPorts = AvailablePortHelper.getRandomAvailableTCPPorts(3);
+    int[] randomAvailableTCPPorts = AvailablePortHelper.getRandomAvailableTCPPorts(2);
     int port1 = randomAvailableTCPPorts[0];
     int port2 = randomAvailableTCPPorts[1];
-    int locatorPort = randomAvailableTCPPorts[2];
 
     // Close down any running servers
     server1.invoke(() -> closeCache());
     server2.invoke(() -> closeCache());
 
-    server1.invoke(() -> createTheServerCache(serverProps, javaProps, locatorPort, port1));
+    server1.invoke(() -> createTheServerCache(serverProps, javaProps, port1));
     client1.invoke(() -> createClientCache(javaProps2, authInit, authProps,
         new int[] {port1, port2}, numOfUsers, postAuthzAllowed));
     client2.invoke(() -> createClientCache(javaProps2, authInit, authProps,
@@ -211,7 +210,7 @@ public class ClientCQPostAuthorizationDUnitTest extends ClientAuthorizationTestC
         0, !failover));
 
     if (failover) {
-      server2.invoke(() -> createTheServerCache(serverProps, javaProps, locatorPort, port2));
+      server2.invoke(() -> createTheServerCache(serverProps, javaProps, port2));
       server1.invoke(() -> closeCache());
 
       // Allow time for client1 to register its CQs on server2
@@ -225,9 +224,8 @@ public class ClientCQPostAuthorizationDUnitTest extends ClientAuthorizationTestC
   }
 
   private void createTheServerCache(final Properties serverProps, final Properties javaProps,
-      final int locatorPort, final int serverPort) {
-    SecurityTestUtils.createCacheServer(serverProps, javaProps, locatorPort, (String) null,
-        serverPort, true, NO_EXCEPTION);
+      final int serverPort) {
+    SecurityTestUtils.createCacheServer(serverProps, javaProps, serverPort, true, NO_EXCEPTION);
   }
 
   private void createClientCache(final Properties javaProps, final String authInit,
@@ -355,7 +353,7 @@ public class ClientCQPostAuthorizationDUnitTest extends ClientAuthorizationTestC
     WaitCriterion wc = new WaitCriterion() {
       @Override
       public boolean done() {
-        CqService cqService = GemFireCacheImpl.getInstance().getCqService();
+        CqService cqService = getInstance().getCqService();
         cqService.start();
         Collection<? extends InternalCqQuery> cqs = cqService.getAllCqs();
         if (cqs != null) {
@@ -370,7 +368,7 @@ public class ClientCQPostAuthorizationDUnitTest extends ClientAuthorizationTestC
         return num + "Waited for " + num + " CQs to be registered on this server.";
       }
     };
-    waitForCriterion(wc, 60 * 1000, 100, false);
+    GeodeAwaitility.await().untilAsserted(wc);
   }
 
   private boolean checkCQListeners(final int numOfUsers, final boolean[] expectedListenerInvocation,

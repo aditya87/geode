@@ -215,6 +215,7 @@ import org.apache.geode.internal.cache.DistributedRemoveAllOperation.RemoveAllMe
 import org.apache.geode.internal.cache.DistributedTombstoneOperation.TombstoneMessage;
 import org.apache.geode.internal.cache.EntryEventImpl;
 import org.apache.geode.internal.cache.EventID;
+import org.apache.geode.internal.cache.ExpireDisconnectedClientTransactionsMessage;
 import org.apache.geode.internal.cache.FilterProfile;
 import org.apache.geode.internal.cache.FindDurableQueueProcessor.FindDurableQueueMessage;
 import org.apache.geode.internal.cache.FindDurableQueueProcessor.FindDurableQueueReply;
@@ -256,7 +257,6 @@ import org.apache.geode.internal.cache.TXCommitMessage.CommitProcessQueryMessage
 import org.apache.geode.internal.cache.TXCommitMessage.CommitProcessQueryReplyMessage;
 import org.apache.geode.internal.cache.TXEntryState;
 import org.apache.geode.internal.cache.TXId;
-import org.apache.geode.internal.cache.TXManagerImpl;
 import org.apache.geode.internal.cache.TXRemoteCommitMessage;
 import org.apache.geode.internal.cache.TXRemoteCommitMessage.TXRemoteCommitReplyMessage;
 import org.apache.geode.internal.cache.TXRemoteRollbackMessage;
@@ -362,8 +362,8 @@ import org.apache.geode.internal.cache.snapshot.FlowController.FlowControlAbortM
 import org.apache.geode.internal.cache.snapshot.FlowController.FlowControlAckMessage;
 import org.apache.geode.internal.cache.snapshot.SnapshotPacket;
 import org.apache.geode.internal.cache.snapshot.SnapshotPacket.SnapshotRecord;
-import org.apache.geode.internal.cache.tier.sockets.ClientBlacklistProcessor.ClientBlacklistMessage;
 import org.apache.geode.internal.cache.tier.sockets.ClientDataSerializerMessage;
+import org.apache.geode.internal.cache.tier.sockets.ClientDenylistProcessor.ClientDenylistMessage;
 import org.apache.geode.internal.cache.tier.sockets.ClientInstantiatorMessage;
 import org.apache.geode.internal.cache.tier.sockets.ClientInterestMessageImpl;
 import org.apache.geode.internal.cache.tier.sockets.ClientMarkerMessageImpl;
@@ -375,7 +375,7 @@ import org.apache.geode.internal.cache.tier.sockets.HAEventWrapper;
 import org.apache.geode.internal.cache.tier.sockets.InterestResultPolicyImpl;
 import org.apache.geode.internal.cache.tier.sockets.ObjectPartList;
 import org.apache.geode.internal.cache.tier.sockets.ObjectPartList651;
-import org.apache.geode.internal.cache.tier.sockets.RemoveClientFromBlacklistMessage;
+import org.apache.geode.internal.cache.tier.sockets.RemoveClientFromDenylistMessage;
 import org.apache.geode.internal.cache.tier.sockets.SerializedObjectPartList;
 import org.apache.geode.internal.cache.tier.sockets.ServerInterestRegistrationMessage;
 import org.apache.geode.internal.cache.tier.sockets.VersionedObjectList;
@@ -699,7 +699,7 @@ public class DSFIDFactory implements DataSerializableFixedID {
     registerDSFID(PR_BECOME_PRIMARY_BUCKET_MESSAGE, BecomePrimaryBucketMessage.class);
     registerDSFID(PR_BECOME_PRIMARY_BUCKET_REPLY, BecomePrimaryBucketReplyMessage.class);
     registerDSFID(PR_REMOVE_BUCKET_MESSAGE, RemoveBucketMessage.class);
-    registerDSFID(TX_MANAGER_REMOVE_TRANSACTIONS, TXManagerImpl.TXRemovalMessage.class);
+    registerDSFID(EXPIRE_CLIENT_TRANSACTIONS, ExpireDisconnectedClientTransactionsMessage.class);
     registerDSFID(PR_REMOVE_BUCKET_REPLY, RemoveBucketReplyMessage.class);
     registerDSFID(PR_MOVE_BUCKET_MESSAGE, MoveBucketMessage.class);
     registerDSFID(PR_MOVE_BUCKET_REPLY, MoveBucketReplyMessage.class);
@@ -846,8 +846,8 @@ public class DSFIDFactory implements DataSerializableFixedID {
     registerDSFID(RESOURCE_PROFILE_MESSAGE, ResourceProfileMessage.class);
     registerDSFID(JMX_MANAGER_PROFILE, JmxManagerProfile.class);
     registerDSFID(JMX_MANAGER_PROFILE_MESSAGE, JmxManagerProfileMessage.class);
-    registerDSFID(CLIENT_BLACKLIST_MESSAGE, ClientBlacklistMessage.class);
-    registerDSFID(REMOVE_CLIENT_FROM_BLACKLIST_MESSAGE, RemoveClientFromBlacklistMessage.class);
+    registerDSFID(CLIENT_DENYLIST_MESSAGE, ClientDenylistMessage.class);
+    registerDSFID(REMOVE_CLIENT_FROM_DENYLIST_MESSAGE, RemoveClientFromDenylistMessage.class);
     registerDSFID(PR_FUNCTION_STREAMING_MESSAGE, PartitionedRegionFunctionStreamingMessage.class);
     registerDSFID(MEMBER_FUNCTION_STREAMING_MESSAGE, MemberFunctionStreamingMessage.class);
     registerDSFID(DR_FUNCTION_STREAMING_MESSAGE, DistributedRegionFunctionStreamingMessage.class);

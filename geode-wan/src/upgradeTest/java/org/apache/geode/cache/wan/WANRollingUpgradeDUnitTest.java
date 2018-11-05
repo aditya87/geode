@@ -23,16 +23,16 @@ import static org.apache.geode.distributed.ConfigurationProperties.LOCATORS;
 import static org.apache.geode.distributed.ConfigurationProperties.LOG_LEVEL;
 import static org.apache.geode.distributed.ConfigurationProperties.MCAST_PORT;
 import static org.apache.geode.distributed.ConfigurationProperties.REMOTE_LOCATORS;
+import static org.apache.geode.distributed.ConfigurationProperties.USE_CLUSTER_CONFIGURATION;
+import static org.apache.geode.test.awaitility.GeodeAwaitility.await;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.awaitility.Awaitility;
 import org.junit.Rule;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -72,7 +72,7 @@ import org.apache.geode.test.junit.runners.CategoryWithParameterizedRunnerFactor
 @Parameterized.UseParametersRunnerFactory(CategoryWithParameterizedRunnerFactory.class)
 public abstract class WANRollingUpgradeDUnitTest extends JUnit4CacheTestCase {
   @Parameterized.Parameters(name = "from_v{0}")
-  public static Collection<String> data() {
+  public static Collection data() {
     List<String> result = VersionManager.getInstance().getVersionsWithoutCurrent();
     if (result.size() < 1) {
       throw new RuntimeException("No older versions of Geode were found to test against");
@@ -89,9 +89,16 @@ public abstract class WANRollingUpgradeDUnitTest extends JUnit4CacheTestCase {
   @Rule
   public transient GfshCommandRule gfsh = new GfshCommandRule();
 
-  public void startLocator(int port, int distributedSystemId, String locators,
+  void startLocator(int port, int distributedSystemId, String locators,
       String remoteLocators) throws IOException {
-    Properties props = getLocatorProperties(distributedSystemId, locators, remoteLocators);
+    startLocator(port, distributedSystemId, locators,
+        remoteLocators, false);
+  }
+
+  void startLocator(int port, int distributedSystemId, String locators,
+      String remoteLocators, boolean enableClusterConfiguration) throws IOException {
+    Properties props = getLocatorProperties(distributedSystemId, locators, remoteLocators,
+        enableClusterConfiguration);
     Locator.startLocatorAndDS(port, null, props);
   }
 
@@ -108,13 +115,22 @@ public abstract class WANRollingUpgradeDUnitTest extends JUnit4CacheTestCase {
 
   private Properties getLocatorProperties(int distributedSystemId, String locators,
       String remoteLocators) {
+    return getLocatorProperties(distributedSystemId, locators,
+        remoteLocators, false);
+  }
+
+
+  private Properties getLocatorProperties(int distributedSystemId, String locators,
+      String remoteLocators, boolean enableClusterConfiguration) {
     Properties props = new Properties();
     props.setProperty(MCAST_PORT, "0");
     props.setProperty(DISTRIBUTED_SYSTEM_ID, String.valueOf(distributedSystemId));
     props.setProperty(LOCATORS, locators);
-    props.setProperty(REMOTE_LOCATORS, remoteLocators);
+    if (remoteLocators != null) {
+      props.setProperty(REMOTE_LOCATORS, remoteLocators);
+    }
     props.setProperty(LOG_LEVEL, DUnitLauncher.logLevel);
-    props.setProperty(ENABLE_CLUSTER_CONFIGURATION, "false");
+    props.setProperty(ENABLE_CLUSTER_CONFIGURATION, String.valueOf(enableClusterConfiguration));
     return props;
   }
 
@@ -124,9 +140,16 @@ public abstract class WANRollingUpgradeDUnitTest extends JUnit4CacheTestCase {
 
   VM rollLocatorToCurrent(VM rollLocator, int port, int distributedSystemId,
       String locators, String remoteLocators) {
+    return rollLocatorToCurrent(rollLocator, port, distributedSystemId,
+        locators, remoteLocators, false);
+  }
+
+  VM rollLocatorToCurrent(VM rollLocator, int port, int distributedSystemId,
+      String locators, String remoteLocators, boolean enableClusterConfiguration) {
     rollLocator.invoke(() -> stopLocator());
     VM newLocator = Host.getHost(0).getVM(VersionManager.CURRENT_VERSION, rollLocator.getId());
-    newLocator.invoke(() -> startLocator(port, distributedSystemId, locators, remoteLocators));
+    newLocator.invoke(() -> startLocator(port, distributedSystemId, locators, remoteLocators,
+        enableClusterConfiguration));
     return newLocator;
   }
 
@@ -219,7 +242,14 @@ public abstract class WANRollingUpgradeDUnitTest extends JUnit4CacheTestCase {
   }
 
   public void createCache(String locators) {
+    createCache(locators, false, false);
+  }
+
+  public void createCache(String locators, boolean enableClusterConfiguration,
+      boolean useClusterConfiguration) {
     Properties props = new Properties();
+    props.setProperty(ENABLE_CLUSTER_CONFIGURATION, String.valueOf(enableClusterConfiguration));
+    props.setProperty(USE_CLUSTER_CONFIGURATION, String.valueOf(useClusterConfiguration));
     props.setProperty(MCAST_PORT, "0");
     props.setProperty(LOCATORS, locators);
     props.setProperty(LOG_LEVEL, DUnitLauncher.logLevel);
@@ -284,7 +314,7 @@ public abstract class WANRollingUpgradeDUnitTest extends JUnit4CacheTestCase {
   }
 
   private void waitForEmptyQueueRegion(String gatewaySenderId, boolean primaryOnly) {
-    Awaitility.await().atMost(60, TimeUnit.SECONDS)
+    await()
         .until(() -> getQueueRegionSize(gatewaySenderId, primaryOnly) == 0);
   }
 

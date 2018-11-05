@@ -30,9 +30,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.apache.geode.CancelException;
 import org.apache.geode.SystemFailure;
-import org.apache.geode.distributed.internal.DistributionConfig;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
-import org.apache.geode.internal.SystemTimer.SystemTimerTask;
 import org.apache.geode.internal.Version;
 import org.apache.geode.internal.cache.CacheClientStatus;
 import org.apache.geode.internal.cache.IncomingGatewayStatus;
@@ -40,11 +38,8 @@ import org.apache.geode.internal.cache.InternalCache;
 import org.apache.geode.internal.cache.TXId;
 import org.apache.geode.internal.cache.TXManagerImpl;
 import org.apache.geode.internal.cache.tier.ServerSideHandshake;
-import org.apache.geode.internal.concurrent.ConcurrentHashSet;
-import org.apache.geode.internal.i18n.LocalizedStrings;
 import org.apache.geode.internal.logging.LogService;
-import org.apache.geode.internal.logging.LoggingThreadGroup;
-import org.apache.geode.internal.logging.log4j.LocalizedMessage;
+import org.apache.geode.internal.logging.LoggingThread;
 
 /**
  * Class <code>ClientHealthMonitor</code> is a server-side singleton that monitors the health of
@@ -92,7 +87,7 @@ public class ClientHealthMonitor {
   static ClientHealthMonitor _instance;
 
   /**
-   * Reference count in the event that multiple bridge servers are using the health monitor
+   * Reference count in the event that multiple cache servers are using the health monitor
    */
 
   private static int refCount = 0;
@@ -212,9 +207,8 @@ public class ClientHealthMonitor {
         this.stats.incClientRegisterRequests();
       }
       if (logger.isDebugEnabled()) {
-        logger.debug(LocalizedMessage.create(
-            LocalizedStrings.ClientHealthMonitor_CLIENTHEALTHMONITOR_REGISTERING_CLIENT_WITH_MEMBER_ID_0,
-            new Object[] {proxyID}));
+        logger.debug("ClientHealthMonitor: Registering client with member id {}",
+            proxyID);
       }
     }
   }
@@ -240,15 +234,13 @@ public class ClientHealthMonitor {
     if (unregisterClient) {
       if (clientDisconnectedCleanly) {
         if (logger.isDebugEnabled()) {
-          logger.debug(LocalizedMessage.create(
-              LocalizedStrings.ClientHealthMonitor_CLIENTHEALTHMONITOR_UNREGISTERING_CLIENT_WITH_MEMBER_ID_0,
-              new Object[] {proxyID}));
+          logger.debug("ClientHealthMonitor: Unregistering client with member id {}",
+              proxyID);
         }
       } else {
-        logger.warn(LocalizedMessage.create(
-            LocalizedStrings.ClientHealthMonitor_CLIENTHEALTHMONITOR_UNREGISTERING_CLIENT_WITH_MEMBER_ID_0_DUE_TO_1,
+        logger.warn("ClientHealthMonitor: Unregistering client with member id {} due to: {}",
             new Object[] {proxyID, clientDisconnectException == null ? "Unknown reason"
-                : clientDisconnectException.getLocalizedMessage()}));
+                : clientDisconnectException.getLocalizedMessage()});
       }
       if (this.stats != null) {
         this.stats.incClientUnRegisterRequests();
@@ -282,15 +274,12 @@ public class ClientHealthMonitor {
     }
   }
 
-  private final Set<TXId> scheduledToBeRemovedTx =
-      Boolean.getBoolean(DistributionConfig.GEMFIRE_PREFIX + "trackScheduledToBeRemovedTx")
-          ? new ConcurrentHashSet<TXId>() : null;
-
   /**
    * provide a test hook to track client transactions to be removed
    */
   public Set<TXId> getScheduledToBeRemovedTx() {
-    return scheduledToBeRemovedTx;
+    final TXManagerImpl txMgr = (TXManagerImpl) this._cache.getCacheTransactionManager();
+    return txMgr.getScheduledToBeRemovedTx();
   }
 
   /**
@@ -301,33 +290,13 @@ public class ClientHealthMonitor {
    */
   private void expireTXStates(ClientProxyMembershipID proxyID) {
     final TXManagerImpl txMgr = (TXManagerImpl) this._cache.getCacheTransactionManager();
-    final Set<TXId> txids =
+    final Set<TXId> txIds =
         txMgr.getTransactionsForClient((InternalDistributedMember) proxyID.getDistributedMember());
     if (this._cache.isClosed()) {
       return;
     }
-    long timeout = txMgr.getTransactionTimeToLive() * 1000;
-    if (!txids.isEmpty()) {
-      if (logger.isDebugEnabled()) {
-        logger.debug("expiring {} transaction contexts for {} timeout={}", txids.size(), proxyID,
-            timeout / 1000);
-      }
-
-      if (timeout <= 0) {
-        txMgr.removeTransactions(txids, true);
-      } else {
-        if (scheduledToBeRemovedTx != null)
-          scheduledToBeRemovedTx.addAll(txids);
-        SystemTimerTask task = new SystemTimerTask() {
-          @Override
-          public void run2() {
-            txMgr.removeTransactions(txids, true);
-            if (scheduledToBeRemovedTx != null)
-              scheduledToBeRemovedTx.removeAll(txids);
-          }
-        };
-        this._cache.getCCPTimer().schedule(task, timeout);
-      }
+    if (!txIds.isEmpty()) {
+      txMgr.expireDisconnectedClientTransactions(txIds, true);
     }
   }
 
@@ -583,10 +552,9 @@ public class ClientHealthMonitor {
     // release sync and operation on copy to fix bug 37675
     for (ServerConnection serverConnection : serverConnections) {
       if (serverConnection.hasBeenTimedOutOnClient()) {
-        logger.warn(LocalizedMessage.create(
-            LocalizedStrings.ClientHealtMonitor_0_IS_BEING_TERMINATED_BECAUSE_ITS_CLIENT_TIMEOUT_OF_1_HAS_EXPIRED,
+        logger.warn("{} is being terminated because its client timeout of {} has expired.",
             new Object[] {serverConnection,
-                Integer.valueOf(serverConnection.getClientReadTimeout())}));
+                Integer.valueOf(serverConnection.getClientReadTimeout())});
         try {
           serverConnection.handleTermination(true);
           // Not all the code in a ServerConnection correctly
@@ -667,9 +635,9 @@ public class ClientHealthMonitor {
       this._clientMonitor.start();
     } else {
       // LOG:CONFIG: changed from config to info
-      logger.info(LocalizedMessage.create(
-          LocalizedStrings.ClientHealthMonitor_CLIENT_HEALTH_MONITOR_THREAD_DISABLED_DUE_TO_MAXIMUMTIMEBETWEENPINGS_SETTING__0,
-          maximumTimeBetweenPings));
+      logger.info(
+          "Client health monitor thread disabled due to maximumTimeBetweenPings setting: {}",
+          maximumTimeBetweenPings);
       this._clientMonitor = null;
     }
 
@@ -726,7 +694,7 @@ public class ClientHealthMonitor {
    * Class <code>ClientHealthMonitorThread</code> is a <code>Thread</code> that verifies all clients
    * are still alive.
    */
-  class ClientHealthMonitorThread extends Thread {
+  class ClientHealthMonitorThread extends LoggingThread {
     private HeartbeatTimeoutCheck checkHeartbeat = (long currentTime, long lastHeartbeat,
         long allowedInterval) -> currentTime - lastHeartbeat > allowedInterval;
 
@@ -752,20 +720,17 @@ public class ClientHealthMonitor {
      *        client has died and interrupting its sockets
      */
     protected ClientHealthMonitorThread(int maximumTimeBetweenPings) {
-      super(LoggingThreadGroup.createThreadGroup("ClientHealthMonitor Thread Group", logger),
-          "ClientHealthMonitor Thread");
-      setDaemon(true);
+      super("ClientHealthMonitor Thread");
 
       // Set the client connection timeout
       this._maximumTimeBetweenPings = maximumTimeBetweenPings;
       // LOG:CONFIG: changed from config to info
-      logger.info(LocalizedMessage.create(
-          LocalizedStrings.ClientHealthMonitor_CLIENTHEALTHMONITORTHREAD_MAXIMUM_ALLOWED_TIME_BETWEEN_PINGS_0,
-          this._maximumTimeBetweenPings));
+      logger.info("ClientHealthMonitorThread maximum allowed time between pings: {}",
+          this._maximumTimeBetweenPings);
       if (maximumTimeBetweenPings == 0) {
         if (logger.isDebugEnabled()) {
           logger.debug("zero ping interval detected", new Exception(
-              LocalizedStrings.ClientHealthMonitor_STACK_TRACE_0.toLocalizedString()));
+              "stack trace"));
         }
       }
     }
@@ -846,10 +811,10 @@ public class ClientHealthMonitor {
                 // a message. If so, let it go. If not, disconnect it.
                 if (prepareToTerminateIfNoConnectionIsProcessing(proxyID)) {
                   if (cleanupClientThreads(proxyID, true)) {
-                    logger.warn(LocalizedMessage.create(
-                        LocalizedStrings.ClientHealthMonitor_MONITORING_CLIENT_WITH_MEMBER_ID_0_IT_HAD_BEEN_1_MS_SINCE_THE_LATEST_HEARTBEAT_MAX_INTERVAL_IS_2_TERMINATED_CLIENT,
+                    logger.warn(
+                        "Monitoring client with member id {}. It had been {} ms since the latest heartbeat. Max interval is {}. Terminated client.",
                         new Object[] {entry.getKey(), currentTime - latestHeartbeat,
-                            this._maximumTimeBetweenPings}));
+                            this._maximumTimeBetweenPings});
                   }
                 } else {
                   if (logger.isDebugEnabled()) {
@@ -872,16 +837,14 @@ public class ClientHealthMonitor {
           if (this._isStopped) {
             break;
           }
-          logger.warn(LocalizedMessage
-              .create(LocalizedStrings.ClientHealthMonitor_UNEXPECTED_INTERRUPT_EXITING), e);
+          logger.warn("Unexpected interrupt, exiting", e);
           break;
         } catch (Exception e) {
           // An exception occurred while monitoring the clients. If the monitor
           // is not stopped, log it and continue processing.
           if (!this._isStopped) {
-            logger.fatal(LocalizedMessage.create(
-                LocalizedStrings.ClientHealthMonitor_0_AN_UNEXPECTED_EXCEPTION_OCCURRED,
-                ClientHealthMonitor.this), e);
+            logger.fatal(ClientHealthMonitor.this.toString() + ": An unexpected Exception occurred",
+                e);
           }
         }
       } // while

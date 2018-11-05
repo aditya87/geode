@@ -15,15 +15,14 @@
 
 package org.apache.geode.management.internal.cli.commands;
 
+import static org.apache.geode.test.awaitility.GeodeAwaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,7 +39,6 @@ import org.apache.geode.cache.client.ClientRegionShortcut;
 import org.apache.geode.cache.query.CqAttributesFactory;
 import org.apache.geode.cache.query.QueryService;
 import org.apache.geode.internal.cache.GemFireCacheImpl;
-import org.apache.geode.internal.net.SocketCreator;
 import org.apache.geode.management.cli.Result;
 import org.apache.geode.management.internal.cli.i18n.CliStrings;
 import org.apache.geode.management.internal.cli.result.CommandResult;
@@ -120,8 +118,9 @@ public class DescribeClientCommandDUnitTest {
 
   private void validateResults(boolean subscriptionEnabled) {
     CommandResult result = gfsh.executeCommand("list members");
-    // list is always locator-0, server-1, server-2
-    String server1 = result.getTableColumnValues("members", "Id").get(1);
+    Map<String, List<String>> members = result.getMapFromTableContent("members");
+    int server1Idx = members.get("Name").indexOf("server-1");
+    String server1 = members.get("Id").get(server1Idx);
 
     result = gfsh.executeCommand("list clients");
     String clientId = result.getColumnFromTableContent(CliStrings.LIST_CLIENT_COLUMN_Clients,
@@ -151,7 +150,7 @@ public class DescribeClientCommandDUnitTest {
     }
 
     assertThat(data.get(CliStrings.DESCRIBE_CLIENT_COLUMN_PUTS)).isEqualTo("2");
-    assertThat(data.get(CliStrings.DESCRIBE_CLIENT_COLUMN_LISTENER_CALLS)).isEqualTo("1");
+    assertThat(data.get(CliStrings.DESCRIBE_CLIENT_COLUMN_LISTENER_CALLS)).isEqualTo("0");
     assertThat(data.get(CliStrings.DESCRIBE_CLIENT_COLUMN_DURABLE)).isEqualTo("No");
     assertThat(Integer.parseInt(data.get(CliStrings.DESCRIBE_CLIENT_COLUMN_THREADS)))
         .isGreaterThan(0);
@@ -164,7 +163,7 @@ public class DescribeClientCommandDUnitTest {
 
   void waitForClientReady(int cqsToWaitFor) {
     // Wait until all CQs are ready
-    Awaitility.waitAtMost(20, TimeUnit.SECONDS).until(() -> {
+    await().until(() -> {
       CommandResult r = gfsh.executeCommand("list clients");
       if (r.getStatus() != Result.Status.OK) {
         return false;
@@ -193,8 +192,6 @@ public class DescribeClientCommandDUnitTest {
       cf.setPoolStatisticInterval(100);
       cf.setPoolSubscriptionRedundancy(1);
       cf.setPoolMinConnections(1);
-      // TODO: Remove this once GEODE-5157 is fixed
-      SocketCreator.use_client_host_name = false;
     };
 
     Properties clientProps = new Properties();

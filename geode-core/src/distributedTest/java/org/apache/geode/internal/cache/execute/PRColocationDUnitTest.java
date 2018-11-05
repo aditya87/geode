@@ -65,7 +65,6 @@ import org.apache.geode.internal.cache.execute.data.Order;
 import org.apache.geode.internal.cache.execute.data.OrderId;
 import org.apache.geode.internal.cache.execute.data.Shipment;
 import org.apache.geode.internal.cache.execute.data.ShipmentId;
-import org.apache.geode.internal.i18n.LocalizedStrings;
 import org.apache.geode.test.dunit.Assert;
 import org.apache.geode.test.dunit.AsyncInvocation;
 import org.apache.geode.test.dunit.Host;
@@ -97,8 +96,6 @@ public class PRColocationDUnitTest extends JUnit4CacheTestCase {
   protected static Cache cache = null;
 
   protected static int totalNumBucketsInTest = 0;
-
-  protected static int defaultStringSize = 0;
 
   static final String CustomerPartitionedRegionName = "CustomerPartitionedRegion";
 
@@ -1445,8 +1442,7 @@ public class PRColocationDUnitTest extends JUnit4CacheTestCase {
               fail("Expected different redundancy levels to throw.");
             } catch (IllegalStateException expected) {
               assertEquals(
-                  LocalizedStrings.PartitionAttributesImpl_CURRENT_PARTITIONEDREGIONS_REDUNDANCY_SHOULD_BE_SAME_AS_THE_REDUNDANCY_OF_COLOCATED_PARTITIONEDREGION
-                      .toLocalizedString(),
+                  "Current PartitionedRegion's redundancy should be same as the redundancy of colocated PartitionedRegion",
                   expected.getMessage());
             }
           }
@@ -2581,17 +2577,6 @@ public class PRColocationDUnitTest extends JUnit4CacheTestCase {
       }
     }
 
-  }
-
-  public static String getDefaultAddOnString() {
-    if (defaultStringSize == 0) {
-      return "";
-    }
-    StringBuffer buf = new StringBuffer(defaultStringSize);
-    for (int i = 0; i < defaultStringSize; i++) {
-      buf.append("a");
-    }
-    return buf.toString();
   }
 
   static class DummyKeyBasedRoutingResolver implements PartitionResolver, DataSerializable {

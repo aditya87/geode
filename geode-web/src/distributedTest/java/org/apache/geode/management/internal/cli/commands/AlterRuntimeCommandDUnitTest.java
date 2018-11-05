@@ -78,7 +78,8 @@ public class AlterRuntimeCommandDUnitTest {
         "java.lang.IllegalArgumentException: Could not set \"log-disk-space-limit\"");
 
     MemberVM server0 =
-        startupRule.startServerVM(0, x -> x.withJMXManager().withProperty(LOG_LEVEL, "error"));
+        startupRule.startServerVM(0,
+            x -> x.withJMXManager().withHttpService().withProperty(LOG_LEVEL, "error"));
 
     if (connectOverHttp) {
       gfsh.connectAndVerify(server0.getHttpPort(), GfshCommandRule.PortType.http);
@@ -120,7 +121,7 @@ public class AlterRuntimeCommandDUnitTest {
     result = gfsh.executeCommand("alter runtime  --log-disk-space-limit=2000000000");
     assertThat(result.getStatus()).isEqualTo(Result.Status.ERROR);
     assertThat(gfsh.getGfshOutput())
-        .contains("Could not set \"log-disk-space-limit\" to \"2,000,000,000\"");
+        .contains("Could not set \"log-disk-space-limit\" to \"2000000000\"");
   }
 
   @Test
@@ -130,7 +131,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
 
@@ -166,7 +168,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
 
@@ -214,7 +217,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withProperties(props).withHttpService());
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
 
@@ -256,7 +260,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     props.setProperty(GROUPS, "G1");
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
@@ -307,7 +312,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
 
@@ -345,7 +351,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
 
@@ -374,7 +381,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     props.setProperty(GROUPS, "G1");
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
@@ -393,18 +401,18 @@ public class AlterRuntimeCommandDUnitTest {
     CommandResult result = gfsh.executeCommand(csb.toString());
     assertThat(result.getStatus()).isEqualTo(Result.Status.ERROR);
     assertThat(gfsh.getGfshOutput())
-        .contains("Could not set \"log-file-size-limit\" to \"1,000,001\"");
+        .contains("Could not set \"log-file-size-limit\" to \"1000001\"");
 
     csb.addOption(CliStrings.MEMBER, server2.getName());
     result = gfsh.executeCommand(csb.toString());
     assertThat(result.getStatus()).isEqualTo(Result.Status.ERROR);
     assertThat(gfsh.getGfshOutput())
-        .contains("Could not set \"log-file-size-limit\" to \"1,000,001\"");
+        .contains("Could not set \"log-file-size-limit\" to \"1000001\"");
 
     result = gfsh.executeCommand(csbGroup.toString());
     assertThat(result.getStatus()).isEqualTo(Result.Status.ERROR);
     assertThat(gfsh.getGfshOutput())
-        .contains("Could not set \"log-file-size-limit\" to \"1,000,001\"");
+        .contains("Could not set \"log-file-size-limit\" to \"1000001\"");
 
     verifyDefaultConfig(new MemberVM[] {server1, server2});
   }
@@ -416,7 +424,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
 
@@ -453,7 +462,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
 
@@ -497,7 +507,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     props.setProperty(GROUPS, "G1");
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
@@ -542,7 +553,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
 
@@ -578,7 +590,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
 
@@ -623,7 +636,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     props.setProperty(GROUPS, "G1");
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
@@ -671,7 +685,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
 
@@ -694,7 +709,7 @@ public class AlterRuntimeCommandDUnitTest {
     result = gfsh.executeCommand(csb.toString());
     assertThat(result.getStatus()).isEqualTo(Result.Status.ERROR);
     assertThat(gfsh.getGfshOutput())
-        .contains("Could not set \"statistic-sample-rate\" to \"60,001\"");
+        .contains("Could not set \"statistic-sample-rate\" to \"60001\"");
 
     verifyDefaultConfig(new MemberVM[] {server1, server2});
   }
@@ -706,7 +721,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
 
@@ -745,7 +761,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
 
@@ -791,7 +808,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     props.setProperty(GROUPS, "G1");
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
@@ -840,7 +858,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
 
@@ -864,7 +883,7 @@ public class AlterRuntimeCommandDUnitTest {
     result = gfsh.executeCommand(csb.toString());
     assertThat(result.getStatus()).isEqualTo(Result.Status.ERROR);
     assertThat(gfsh.getGfshOutput())
-        .contains("Could not set \"archive-disk-space-limit\" to \"1,000,001\"");
+        .contains("Could not set \"archive-disk-space-limit\" to \"1000001\"");
 
     for (MemberVM server : new MemberVM[] {server1, server2}) {
       server.invoke(() -> {
@@ -888,7 +907,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
 
@@ -927,7 +947,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
 
@@ -973,7 +994,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     props.setProperty(GROUPS, "G1");
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
@@ -1022,7 +1044,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
 
@@ -1046,7 +1069,7 @@ public class AlterRuntimeCommandDUnitTest {
     result = gfsh.executeCommand(csb.toString());
     assertThat(result.getStatus()).isEqualTo(Result.Status.ERROR);
     assertThat(gfsh.getGfshOutput())
-        .contains("Could not set \"archive-file-size-limit\" to \"1,000,001\"");
+        .contains("Could not set \"archive-file-size-limit\" to \"1000001\"");
 
     verifyDefaultConfig(new MemberVM[] {server1, server2});
   }
@@ -1057,7 +1080,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
 
@@ -1097,7 +1121,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
     props.setProperty(GROUPS, "G1");
     MemberVM server2 = startupRule.startServerVM(2, props, locator.getPort());
@@ -1145,7 +1170,8 @@ public class AlterRuntimeCommandDUnitTest {
 
     Properties props = new Properties();
     props.setProperty(LOG_LEVEL, "error");
-    MemberVM locator = startupRule.startLocatorVM(0, props);
+    MemberVM locator =
+        startupRule.startLocatorVM(0, l -> l.withHttpService().withProperties(props));
     MemberVM server1 = startupRule.startServerVM(1, props, locator.getPort());
 
     if (connectOverHttp) {
@@ -1177,7 +1203,7 @@ public class AlterRuntimeCommandDUnitTest {
   @Test
   @Parameters({"true", "false"})
   public void testAlterUpdatesSharedConfig(final boolean connectOverHttp) throws Exception {
-    MemberVM locator = startupRule.startLocatorVM(0);
+    MemberVM locator = startupRule.startLocatorVM(0, l -> l.withHttpService());
 
     if (connectOverHttp) {
       gfsh.connectAndVerify(locator.getHttpPort(), GfshCommandRule.PortType.http);

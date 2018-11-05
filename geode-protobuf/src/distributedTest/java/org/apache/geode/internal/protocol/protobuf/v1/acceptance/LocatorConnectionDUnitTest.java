@@ -16,6 +16,7 @@
 package org.apache.geode.internal.protocol.protobuf.v1.acceptance;
 
 import static org.apache.geode.internal.Assert.assertTrue;
+import static org.apache.geode.test.awaitility.GeodeAwaitility.await;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -215,16 +216,18 @@ public class LocatorConnectionDUnitTest extends JUnit4CacheTestCase {
   private void validateStats(long messagesReceived, long messagesSent, long bytesReceived,
       long bytesSent, int clientConnectionStarts, int clientConnectionTerminations) {
     Host.getLocator().invoke(() -> {
-      Statistics statistics = getStatistics();
-      assertEquals(0, statistics.get("currentClientConnections"));
-      assertEquals(messagesSent, statistics.get("messagesSent"));
-      assertEquals(messagesReceived, statistics.get("messagesReceived"));
-      assertEquals(bytesSent, statistics.get("bytesSent").longValue());
-      assertEquals(bytesReceived, statistics.get("bytesReceived").longValue());
-      assertEquals(clientConnectionStarts, statistics.get("clientConnectionStarts"));
-      assertEquals(clientConnectionTerminations, statistics.get("clientConnectionTerminations"));
-      assertEquals(0L, statistics.get("authorizationViolations"));
-      assertEquals(0L, statistics.get("authenticationFailures"));
+      await().untilAsserted(() -> {
+        Statistics statistics = getStatistics();
+        assertEquals(0, statistics.get("currentClientConnections"));
+        assertEquals(messagesSent, statistics.get("messagesSent"));
+        assertEquals(messagesReceived, statistics.get("messagesReceived"));
+        assertEquals(bytesSent, statistics.get("bytesSent").longValue());
+        assertEquals(bytesReceived, statistics.get("bytesReceived").longValue());
+        assertEquals(clientConnectionStarts, statistics.get("clientConnectionStarts"));
+        assertEquals(clientConnectionTerminations, statistics.get("clientConnectionTerminations"));
+        assertEquals(0L, statistics.get("authorizationViolations"));
+        assertEquals(0L, statistics.get("authenticationFailures"));
+      });
     });
   }
 

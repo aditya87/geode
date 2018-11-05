@@ -69,10 +69,8 @@ import org.apache.geode.internal.cache.wan.parallel.ConcurrentParallelGatewaySen
 import org.apache.geode.internal.cache.wan.parallel.WaitUntilParallelGatewaySenderFlushedCoordinator;
 import org.apache.geode.internal.cache.wan.serial.ConcurrentSerialGatewaySenderEventProcessor;
 import org.apache.geode.internal.cache.xmlcache.CacheCreation;
-import org.apache.geode.internal.i18n.LocalizedStrings;
 import org.apache.geode.internal.logging.LogService;
-import org.apache.geode.internal.logging.LoggingThreadGroup;
-import org.apache.geode.internal.logging.log4j.LocalizedMessage;
+import org.apache.geode.internal.logging.LoggingThread;
 import org.apache.geode.internal.offheap.Releasable;
 import org.apache.geode.internal.offheap.annotations.Released;
 import org.apache.geode.internal.offheap.annotations.Retained;
@@ -84,7 +82,7 @@ import org.apache.geode.internal.offheap.annotations.Unretained;
  *
  * @since GemFire 7.0
  */
-public abstract class AbstractGatewaySender implements GatewaySender, DistributionAdvisee {
+public abstract class AbstractGatewaySender implements InternalGatewaySender, DistributionAdvisee {
 
   private static final Logger logger = LogService.getLogger();
 
@@ -278,6 +276,7 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     return senderAdvisor;
   }
 
+  @Override
   public GatewaySenderStats getStatistics() {
     return statistics;
   }
@@ -286,6 +285,7 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     // no op
   }
 
+  @Override
   public boolean isPrimary() {
     return this.getSenderAdvisor().isPrimary();
   }
@@ -294,34 +294,42 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     this.getSenderAdvisor().setIsPrimary(isPrimary);
   }
 
+  @Override
   public InternalCache getCache() {
     return this.cache;
   }
 
+  @Override
   public int getAlertThreshold() {
     return this.alertThreshold;
   }
 
+  @Override
   public int getBatchSize() {
     return this.batchSize;
   }
 
+  @Override
   public int getBatchTimeInterval() {
     return this.batchTimeInterval;
   }
 
+  @Override
   public String getDiskStoreName() {
     return this.diskStoreName;
   }
 
+  @Override
   public List<GatewayEventFilter> getGatewayEventFilters() {
     return this.eventFilters;
   }
 
+  @Override
   public GatewayEventSubstitutionFilter getGatewayEventSubstitutionFilter() {
     return this.substitutionFilter;
   }
 
+  @Override
   public String getId() {
     return this.id;
   }
@@ -330,10 +338,12 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     return this.startTime;
   }
 
+  @Override
   public int getRemoteDSId() {
     return this.remoteDSId;
   }
 
+  @Override
   public List<GatewayTransportFilter> getGatewayTransportFilters() {
     return this.transFilters;
   }
@@ -346,14 +356,17 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     return !this.listeners.isEmpty();
   }
 
+  @Override
   public boolean isForwardExpirationDestroy() {
     return this.forwardExpirationDestroy;
   }
 
+  @Override
   public boolean isManualStart() {
     return this.manualStart;
   }
 
+  @Override
   public int getMaximumQueueMemory() {
     return this.queueMemory;
   }
@@ -362,14 +375,17 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     return this.maxMemoryPerDispatcherQueue;
   }
 
+  @Override
   public int getSocketBufferSize() {
     return this.socketBufferSize;
   }
 
+  @Override
   public int getSocketReadTimeout() {
     return this.socketReadTimeout;
   }
 
+  @Override
   public boolean isBatchConflationEnabled() {
     return this.isConflation;
   }
@@ -378,14 +394,17 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     this.isConflation = enableConflation;
   }
 
+  @Override
   public boolean isPersistenceEnabled() {
     return this.isPersistence;
   }
 
+  @Override
   public boolean isDiskSynchronous() {
     return this.isDiskSynchronous;
   }
 
+  @Override
   public int getMaxParallelismForReplicatedRegion() {
     return this.parallelismForReplicatedRegion;
   }
@@ -394,38 +413,47 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     return this.locatorDiscoveryCallback;
   }
 
+  @Override
   public DistributionAdvisor getDistributionAdvisor() {
     return this.senderAdvisor;
   }
 
+  @Override
   public DistributionManager getDistributionManager() {
     return getSystem().getDistributionManager();
   }
 
+  @Override
   public String getFullPath() {
     return getId();
   }
 
+  @Override
   public String getName() {
     return getId();
   }
 
+  @Override
   public DistributionAdvisee getParentAdvisee() {
     return null;
   }
 
+  @Override
   public int getDispatcherThreads() {
     return this.dispatcherThreads;
   }
 
+  @Override
   public OrderPolicy getOrderPolicy() {
     return this.policy;
   }
 
+  @Override
   public Profile getProfile() {
     return this.senderAdvisor.createProfile();
   }
 
+  @Override
   public int getSerialNumber() {
     return this.serialNumber;
   }
@@ -434,12 +462,14 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     return this.isBucketSorted;
   }
 
+  @Override
   public boolean getIsMetaQueue() {
     return this.isMetaQueue;
   }
 
+  @Override
   public InternalDistributedSystem getSystem() {
-    return (InternalDistributedSystem) this.cache.getDistributedSystem();
+    return this.cache.getInternalDistributedSystem();
   }
 
   public int getEventIdIndex() {
@@ -473,22 +503,24 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     return proxy;
   }
 
+  @Override
   public void removeGatewayEventFilter(GatewayEventFilter filter) {
     this.eventFilters.remove(filter);
   }
 
+  @Override
   public void addGatewayEventFilter(GatewayEventFilter filter) {
     if (this.eventFilters.isEmpty()) {
       this.eventFilters = new ArrayList<GatewayEventFilter>();
     }
     if (filter == null) {
       throw new IllegalStateException(
-          LocalizedStrings.GatewaySenderImpl_NULL_CANNNOT_BE_ADDED_TO_GATEWAY_EVENT_FILTER_LIST
-              .toLocalizedString());
+          "null value can not be added to gateway-event-filters list");
     }
     this.eventFilters.add(filter);
   }
 
+  @Override
   public boolean isParallel() {
     return this.isParallel;
   }
@@ -497,8 +529,10 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     return this.isForInternalUse;
   }
 
+  @Override
   public abstract void start();
 
+  @Override
   public abstract void stop();
 
   /**
@@ -517,6 +551,7 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     destroy(true);
   }
 
+  @Override
   public void destroy(boolean initiator) {
     try {
       this.getLifeCycleLock().writeLock().lock();
@@ -529,8 +564,9 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
 
         if (region.getAttributes().getGatewaySenderIds().contains(this.id)) {
           throw new GatewaySenderException(
-              LocalizedStrings.GatewaySender_COULD_NOT_DESTROY_SENDER_AS_IT_IS_STILL_IN_USE
-                  .toLocalizedString(this));
+              String.format(
+                  "The GatewaySender %s could not be destroyed as it is still used by region(s).",
+                  this));
         }
       }
       // close the GatewaySenderAdvisor
@@ -568,9 +604,9 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
               // the region might have already been destroyed by other node. Just
               // log
               // the exception.
-              this.logger.info(LocalizedMessage.create(
-                  LocalizedStrings.AbstractGatewaySender_REGION_0_UNDERLYING_GATEWAYSENDER_1_IS_ALREADY_DESTROYED,
-                  new Object[] {e.getRegionFullPath(), this}));
+              this.logger.info(
+                  "Region {} that underlies the GatewaySender {} is already destroyed.",
+                  e.getRegionFullPath(), this);
             }
           }
         } // END if (regionQueues != null)
@@ -580,6 +616,7 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     }
   }
 
+  @Override
   public void rebalance() {
     try {
       // Pause the sender
@@ -594,7 +631,7 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
       resume();
     }
     logger.info(
-        LocalizedMessage.create(LocalizedStrings.GatewayImpl_GATEWAY_0_HAS_BEEN_REBALANCED, this));
+        "GatewaySender {} has been rebalanced", this);
   }
 
   public boolean beforeEnqueue(GatewayQueueEvent gatewayEvent) {
@@ -622,6 +659,7 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
 
   protected void stompProxyDead() {
     Runnable stomper = new Runnable() {
+      @Override
       public void run() {
         PoolImpl bpi = proxy;
         if (bpi != null) {
@@ -632,9 +670,7 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
         }
       }
     };
-    ThreadGroup tg = LoggingThreadGroup.createThreadGroup("Proxy Stomper Group", logger);
-    Thread t = new Thread(tg, stomper, "GatewaySender Proxy Stomper");
-    t.setDaemon(true);
+    Thread t = new LoggingThread("GatewaySender Proxy Stomper", stomper);
     t.start();
     try {
       t.join(GATEWAY_SENDER_TIMEOUT * 1000);
@@ -643,8 +679,7 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
       Thread.currentThread().interrupt();
     }
 
-    logger.warn(LocalizedMessage.create(
-        LocalizedStrings.GatewayImpl_GATEWAY_0_IS_NOT_CLOSING_CLEANLY_FORCING_CANCELLATION, this));
+    logger.warn("Gateway <{}> is not closing cleanly; forcing cancellation.", this);
     // OK, either we've timed out or been interrupted. Time for
     // violence.
     t.interrupt(); // give up
@@ -719,6 +754,7 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     return null;
   }
 
+  @Override
   public Set<RegionQueue> getQueues() {
     if (this.eventProcessor != null) {
       if (!(this.eventProcessor instanceof ConcurrentSerialGatewaySenderEventProcessor)) {
@@ -743,13 +779,14 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
       Exception ex = this.eventProcessor.getException();
       if (ex != null) {
         throw new GatewaySenderException(
-            LocalizedStrings.Sender_COULD_NOT_START_GATEWAYSENDER_0_BECAUSE_OF_EXCEPTION_1
-                .toLocalizedString(new Object[] {this.getId(), ex.getMessage()}),
+            String.format("Could not start a gateway sender %s because of exception %s",
+                new Object[] {this.getId(), ex.getMessage()}),
             ex.getCause());
       }
     }
   }
 
+  @Override
   public void pause() {
     if (this.eventProcessor != null) {
       this.getLifeCycleLock().writeLock().lock();
@@ -763,7 +800,7 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
             (InternalDistributedSystem) this.cache.getDistributedSystem();
         system.handleResourceEvent(ResourceEvent.GATEWAYSENDER_PAUSE, this);
 
-        logger.info(LocalizedMessage.create(LocalizedStrings.GatewaySender_PAUSED__0, this));
+        logger.info("Paused {}", this);
 
         enqueueTempEvents();
       } finally {
@@ -772,6 +809,7 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     }
   }
 
+  @Override
   public void resume() {
     if (this.eventProcessor != null) {
       this.getLifeCycleLock().writeLock().lock();
@@ -786,7 +824,7 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
             (InternalDistributedSystem) this.cache.getDistributedSystem();
         system.handleResourceEvent(ResourceEvent.GATEWAYSENDER_RESUME, this);
 
-        logger.info(LocalizedMessage.create(LocalizedStrings.GatewaySender_RESUMED__0, this));
+        logger.info("Resumed {}", this);
 
         enqueueTempEvents();
       } finally {
@@ -795,6 +833,7 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     }
   }
 
+  @Override
   public boolean isPaused() {
     if (this.eventProcessor != null) {
       return this.eventProcessor.isPaused();
@@ -802,6 +841,7 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     return false;
   }
 
+  @Override
   public boolean isRunning() {
     if (this.eventProcessor != null) {
       return !this.eventProcessor.isStopped();
@@ -809,6 +849,7 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     return false;
   }
 
+  @Override
   public AbstractGatewaySenderEventProcessor getEventProcessor() {
     return this.eventProcessor;
   }
@@ -990,13 +1031,15 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
           logger.debug("caught cancel exception", e);
           throw e;
         } catch (RegionDestroyedException e) {
-          logger.warn(LocalizedMessage.create(
-              LocalizedStrings.GatewayImpl_0_AN_EXCEPTION_OCCURRED_WHILE_QUEUEING_1_TO_PERFORM_OPERATION_2_FOR_3,
-              new Object[] {this, getId(), operation, clonedEvent}), e);
+          logger.warn(String.format(
+              "%s: An Exception occurred while queueing %s to perform operation %s for %s",
+              new Object[] {this, getId(), operation, clonedEvent}),
+              e);
         } catch (Exception e) {
-          logger.fatal(LocalizedMessage.create(
-              LocalizedStrings.GatewayImpl_0_AN_EXCEPTION_OCCURRED_WHILE_QUEUEING_1_TO_PERFORM_OPERATION_2_FOR_3,
-              new Object[] {this, getId(), operation, clonedEvent}), e);
+          logger.fatal(String.format(
+              "%s: An Exception occurred while queueing %s to perform operation %s for %s",
+              new Object[] {this, getId(), operation, clonedEvent}),
+              e);
         }
       } finally {
         this.getLifeCycleLock().readLock().unlock();
@@ -1052,9 +1095,10 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
       } catch (CacheException e) {
         logger.debug("caught cancel exception", e);
       } catch (IOException e) {
-        logger.fatal(LocalizedMessage.create(
-            LocalizedStrings.GatewayImpl_0_AN_EXCEPTION_OCCURRED_WHILE_QUEUEING_1_TO_PERFORM_OPERATION_2_FOR_3,
-            new Object[] {this, getId(), nextEvent.getOperation(), nextEvent}), e);
+        logger.fatal(String.format(
+            "%s: An Exception occurred while queueing %s to perform operation %s for %s",
+            new Object[] {this, getId(), nextEvent.getOperation(), nextEvent}),
+            e);
       }
     }
   }
@@ -1119,9 +1163,10 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
         }
       } catch (Exception e) {
         // Log any exceptions that occur in the filter and use the original value.
-        logger.warn(LocalizedMessage.create(
-            LocalizedStrings.GatewayImpl_0_AN_EXCEPTION_OCCURRED_WHILE_QUEUEING_1_TO_PERFORM_OPERATION_2_FOR_3,
-            new Object[] {this, getId(), operation, clonedEvent}), e);
+        logger.warn(String.format(
+            "%s: An Exception occurred while queueing %s to perform operation %s for %s",
+            new Object[] {this, getId(), operation, clonedEvent}),
+            e);
       }
     }
     return substituteValue;
@@ -1136,8 +1181,8 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
       gotLock = getCache().getGatewaySenderLockService().lock(META_DATA_REGION_NAME, -1, -1);
       if (!gotLock) {
         throw new IllegalStateException(
-            LocalizedStrings.AbstractGatewaySender_FAILED_TO_LOCK_META_REGION_0
-                .toLocalizedString(this));
+            String.format("%s: Failed to lock gateway event id index metadata region",
+                this));
       } else {
         if (isDebugEnabled) {
           logger.debug("{}: Locked the metadata region", this);
@@ -1157,8 +1202,9 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
           index = region.size();
           if (index > ThreadIdentifier.Bits.GATEWAY_ID.mask()) {
             throw new IllegalStateException(
-                LocalizedStrings.AbstractGatewaySender_CANNOT_CREATE_SENDER_0_BECAUSE_MAXIMUM_1_HAS_BEEN_REACHED
-                    .toLocalizedString(getId(), ThreadIdentifier.Bits.GATEWAY_ID.mask() + 1));
+                String.format(
+                    "Cannot create GatewaySender %s because the maximum (%s) has been reached",
+                    getId(), ThreadIdentifier.Bits.GATEWAY_ID.mask() + 1));
           }
           region.put(getId(), index);
           if (isDebugEnabled) {
@@ -1204,6 +1250,7 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
 
       // Create a stats holder for the meta data stats
       final HasCachePerfStats statsHolder = new HasCachePerfStats() {
+        @Override
         public CachePerfStats getCachePerfStats() {
           return new CachePerfStats(cache.getDistributedSystem(), META_DATA_REGION_NAME);
         }
@@ -1220,8 +1267,9 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
         region = cache.getRegion(META_DATA_REGION_NAME);
       } catch (Exception e) {
         throw new IllegalStateException(
-            LocalizedStrings.AbstractGatewaySender_META_REGION_CREATION_EXCEPTION_0
-                .toLocalizedString(sender),
+            String.format(
+                "%s: Caught the following exception attempting to create gateway event id index metadata region:",
+                sender),
             e);
       }
     }
@@ -1240,6 +1288,7 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
       return singleton;
     }
 
+    @Override
     public boolean enqueueEvent(EntryEventImpl event) {
       return true;
     }
@@ -1278,6 +1327,7 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     return lifeCycleLock;
   }
 
+  @Override
   public boolean waitUntilFlushed(long timeout, TimeUnit unit) throws InterruptedException {
     boolean result = false;
     if (isParallel()) {
@@ -1287,14 +1337,12 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
         result = coordinator.waitUntilFlushed();
       } catch (BucketMovedException | CancelException | RegionDestroyedException e) {
         logger.warn(
-            LocalizedStrings.AbstractGatewaySender_CAUGHT_EXCEPTION_ATTEMPTING_WAIT_UNTIL_FLUSHED_RETRYING
-                .toLocalizedString(),
+            "Caught the following exception attempting waitUntilFlushed and will retry:",
             e);
         throw e;
       } catch (Throwable t) {
         logger.warn(
-            LocalizedStrings.AbstractGatewaySender_CAUGHT_EXCEPTION_ATTEMPTING_WAIT_UNTIL_FLUSHED_RETURNING
-                .toLocalizedString(),
+            "Caught the following exception attempting waitUntilFlushed and will return:",
             t);
         throw new InternalGemFireError(t);
       }
@@ -1302,8 +1350,7 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     } else {
       // Serial senders are currently not supported
       throw new UnsupportedOperationException(
-          LocalizedStrings.AbstractGatewaySender_WAIT_UNTIL_FLUSHED_NOT_SUPPORTED_FOR_SERIAL_SENDERS
-              .toLocalizedString());
+          "waitUntilFlushed is not currently supported for serial gateway senders");
     }
   }
 
@@ -1371,9 +1418,8 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
         GatewaySenderEventImpl gsei = (GatewaySenderEventImpl) i.next();
         if (gsei.getKey().equals(key) && gsei.getVersionTimeStamp() == timestamp) {
           event = gsei;
-          logger.info(LocalizedMessage.create(
-              LocalizedStrings.AbstractGatewaySender_PROVIDING_SYNCHRONIZATION_EVENT,
-              new Object[] {this, key, timestamp, event}));
+          logger.info("{}: Providing synchronization event for key={}; timestamp={}: {}",
+              this, key, timestamp, event);
           this.statistics.incSynchronizationEventsProvided();
           break;
         }
@@ -1386,15 +1432,15 @@ public abstract class AbstractGatewaySender implements GatewaySender, Distributi
     if (this.eventProcessor != null) {
       this.lifeCycleLock.readLock().lock();
       try {
-        logger.info(LocalizedMessage.create(
-            LocalizedStrings.AbstractGatewaySender_ENQUEUEING_SYNCHRONIZATION_EVENT,
-            new Object[] {this, event}));
+        logger.info("{}: Enqueueing synchronization event: {}",
+            this, event);
         this.eventProcessor.enqueueEvent(event);
         this.statistics.incSynchronizationEventsEnqueued();
       } catch (Throwable t) {
-        logger.warn(LocalizedMessage.create(
-            LocalizedStrings.AbstractGatewaySender_CAUGHT_EXCEPTION_ENQUEUEING_SYNCHRONIZATION_EVENT,
-            new Object[] {this, event}), t);
+        logger.warn(String.format(
+            "%s: Caught the following exception attempting to enqueue synchronization event=%s:",
+            new Object[] {this, event}),
+            t);
       } finally {
         this.lifeCycleLock.readLock().unlock();
       }

@@ -23,6 +23,7 @@ subprojects {
       target project.fileTree(project.projectDir) {
         include '**/*.java'
         exclude '**/generated-src/**'
+        exclude '**/build/**'
       }
 
       // As the method name suggests, bump this number if any of the below "custom" rules change.
@@ -39,6 +40,11 @@ subprojects {
         // This will require the developer themselves to adhere to best practices.
         if (it =~ /\nimport .*\*;/) {
           throw new AssertionError("Do not use wildcard imports.  'spotlessApply' cannot resolve this issue.");
+        }
+      }
+      custom 'Refuse Awaitility import', {
+        if(it =~ /import\s+(static\s+)?org.awaitility.Awaitility.*/) {
+          throw new AssertionError("Do not use Awaitility.await(). Use GeodeAwaitility.await() instead. 'spotlessApply' cannot resolve this issue.")
         }
       }
       importOrderFile "${project(':geode-core').projectDir}/../etc/eclipseOrganizeImports.importorder"
@@ -62,18 +68,18 @@ subprojects {
       // Enforce style modifier order
       custom 'Modifier ordering', {
         def modifierRanking = [
-                public      : 1,
-                protected   : 2,
-                private     : 3,
-                abstract    : 4,
-                default     : 5,
-                static      : 6,
-                final       : 7,
-                transient   : 8,
-                volatile    : 9,
-                synchronized: 10,
-                native      : 11,
-                strictfp    : 12]
+                "public": 1,
+                "protected": 2,
+                "private": 3,
+                "abstract": 4,
+                "default": 5,
+                "static": 6,
+                "final": 7,
+                "transient": 8,
+                "volatile": 9,
+                "synchronized": 10,
+                "native": 11,
+                "strictfp": 12]
         // Find any instance of multiple modifiers. Lead with a non-word character to avoid
         // accidental matching against for instance, "an alternative default value"
         it.replaceAll(/\W(?:public |protected |private |abstract |default |static |final |transient |volatile |synchronized |native |strictfp ){2,}/, {
@@ -99,5 +105,39 @@ subprojects {
       trimTrailingWhitespace()
       endWithNewline()
     }
+
+    groovyGradle {
+      target project.fileTree(project.projectDir) {
+        include '**/*.gradle'
+        exclude '**/generated-src/**'
+        exclude '**/build/**'
+      }
+
+      // As the method name suggests, bump this number if any of the below "custom" rules change.
+      // Spotless will not run on unchanged files unless this number changes.
+      bumpThisNumberIfACustomStepChanges(0)
+
+      custom 'Use single-quote in project directives.', {
+        it.replaceAll(/project\(":([^"]*)"\)/, 'project(\':$1\')')
+      }
+
+      custom 'Use parenthesis in single-line gradle dependency declarations.', {
+        it.replaceAll(/\n(\s*\S*(?:[cC]ompile|[rR]untime)(?:Only)?) (?!\()([^{\n]*)\n/, { original, declaration, dep ->
+          "\n${declaration}(${dep})\n"
+        })
+      }
+
+      custom 'Do not pad spaces before parenthesis in gradle dependency declaration.', {
+        it.replaceAll(/\n(\s*\S*(?:[cC]ompile|[rR]untime)(?:Only)?) +\(/, '\n$1(')
+      }
+
+      indentWithSpaces(2)
+    }
+  }
+
+  // If we add more languages to Spotless, add them to 'compileXYZ' trigger below
+  afterEvaluate {
+    project.tasks['compileJava'].mustRunAfter(spotlessCheck)
+    project.tasks['compileJava'].mustRunAfter(spotlessApply)
   }
 }

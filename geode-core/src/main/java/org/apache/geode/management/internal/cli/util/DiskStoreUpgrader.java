@@ -25,7 +25,6 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.geode.GemFireIOException;
 import org.apache.geode.cache.DiskAccessException;
 import org.apache.geode.internal.cache.DiskStoreImpl;
-import org.apache.geode.internal.i18n.LocalizedStrings;
 import org.apache.geode.internal.lang.StringUtils;
 import org.apache.geode.management.internal.cli.GfshParser;
 import org.apache.geode.management.internal.cli.i18n.CliStrings;
@@ -58,6 +57,7 @@ public class DiskStoreUpgrader {
           "Requires 3 arguments : <diskStoreName> <diskDirs> <maxOpLogSize>");
     }
 
+    boolean errored = false;
     try {
       diskStoreName = prop.getProperty(CliStrings.UPGRADE_OFFLINE_DISK_STORE__NAME);
       diskDirsStr = prop.getProperty(CliStrings.UPGRADE_OFFLINE_DISK_STORE__DISKDIRS);
@@ -67,11 +67,12 @@ public class DiskStoreUpgrader {
 
       upgrade(diskStoreName, diskDirs, maxOplogSize);
     } catch (GemFireIOException e) {
+      errored = true;
       Throwable cause = e.getCause();
       if (cause instanceof IllegalStateException) {
         String message = cause.getMessage();
         if (stringMatches(
-            LocalizedStrings.DiskInitFile_THE_INIT_FILE_0_DOES_NOT_EXIST.toLocalizedString("(.*)"),
+            String.format("The init file %s does not exist.", "(.*)"),
             message)) {
           errorString = CliStrings.format(
               CliStrings.UPGRADE_OFFLINE_DISK_STORE__MSG__CANNOT_LOCATE_0_DISKSTORE_IN_1,
@@ -84,8 +85,8 @@ public class DiskStoreUpgrader {
         Throwable nestedCause = cause.getCause();
         if (nestedCause instanceof IOException) {
           String message = nestedCause.getMessage();
-          if (stringMatches(LocalizedStrings.Oplog_THE_FILE_0_IS_BEING_USED_BY_ANOTHER_PROCESS
-              .toLocalizedString("(.*)"), message)) {
+          if (stringMatches(String.format("The file %s is being used by another process.",
+              "(.*)"), message)) {
             errorString =
                 CliStrings.UPGRADE_OFFLINE_DISK_STORE__MSG__DISKSTORE_IN_USE_COMPACT_DISKSTORE_CAN_BE_USED;
             isKnownCause = true;
@@ -101,6 +102,7 @@ public class DiskStoreUpgrader {
       }
       stackTraceString = ExceptionUtils.getStackTrace(e);
     } catch (IllegalArgumentException e) {
+      errored = true;
       errorString = e.getMessage();
       stackTraceString = ExceptionUtils.getStackTrace(e);
     } finally {
@@ -110,6 +112,10 @@ public class DiskStoreUpgrader {
       if (stackTraceString != null) {
         System.err.println(STACKTRACE_START);
         System.err.println(stackTraceString);
+      }
+
+      if (errored) {
+        System.exit(1);
       }
     }
   }

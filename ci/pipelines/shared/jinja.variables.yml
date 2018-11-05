@@ -1,0 +1,151 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+repository:
+  project: geode
+
+build_test:
+  name: "Build"
+  CPUS: "8"
+  RAM: "16"
+  ARTIFACT_SLUG: build
+  CALL_STACK_TIMEOUT: "1800"
+  PARALLEL_DUNIT: "false"
+  DUNIT_PARALLEL_FORKS: "4"
+  # Actual gradle task is "build install" but is hard-coded in execute_build.sh
+  # It's consumption is more like a "TEST_RESULTS_DESTINATIONS_DIRECTORY_STUB_THING.
+  GRADLE_TASK: build
+  execute_test_timeout: 10m
+examples_test:
+  name: "TestExamples"
+  CPUS: "8"
+  RAM: "16"
+  ARTIFACT_SLUG: examples
+  CALL_STACK_TIMEOUT: "1800"
+  PARALLEL_DUNIT: "false"
+  DUNIT_PARALLEL_FORKS: "4"
+  # Actual gradle task is "clean runAll" but is hard-coded in execute_build_examples.sh
+  # It's consumption is more like a "TEST_RESULTS_DESTINATIONS_DIRECTORY_STUB_THING.
+  GRADLE_TASK: runAll
+  execute_test_timeout: 30m
+
+publish_artifacts:
+  name: "PublishArtifacts"
+  CPUS: "8"
+  RAM: "16"
+  execute_test_timeout: 10m
+
+java_test_versions:
+- name: OpenJDK8
+  version: 8
+- name: OpenJDK11
+  version: 11
+
+java_build_version:
+  name: OpenJDK8
+  version: 8
+
+tests:
+- name: "Unit"
+  CPUS: "8"
+  RAM: "16"
+  ARTIFACT_SLUG: unittestfiles
+  CALL_STACK_TIMEOUT: "1800"
+  DUNIT_PARALLEL_FORKS: "0"
+  GRADLE_TASK: test
+  execute_test_timeout: 10m
+  PARALLEL_DUNIT: "false"
+  PARALLEL_GRADLE: "true"
+- name: "Acceptance"
+  CPUS: "8"
+  RAM: "12"
+  ARTIFACT_SLUG: acceptancetestfiles
+  CALL_STACK_TIMEOUT: "1800"
+  DUNIT_PARALLEL_FORKS: "0"
+  GRADLE_TASK: acceptanceTest
+  execute_test_timeout: 45m
+  PARALLEL_DUNIT: "false"
+  PARALLEL_GRADLE: "false"
+- name: "Distributed"
+  CPUS: "96"
+  RAM: "180"
+  ARTIFACT_SLUG: distributedtestfiles
+  CALL_STACK_TIMEOUT: "7200"
+  DUNIT_PARALLEL_FORKS: "24"
+  GRADLE_TASK: distributedTest
+  execute_test_timeout: 2h15m
+  PARALLEL_DUNIT: "true"
+- name: "Integration"
+  CPUS: "96"
+  RAM: "90"
+  ARTIFACT_SLUG: integrationtestfiles
+  CALL_STACK_TIMEOUT: "1500"
+  DUNIT_PARALLEL_FORKS: "48"
+  GRADLE_TASK: integrationTest
+  execute_test_timeout: 40m
+  PARALLEL_DUNIT: "true"
+- name: "Upgrade"
+  CPUS: "96"
+  RAM: "160"
+  ARTIFACT_SLUG: upgradetestfiles
+  CALL_STACK_TIMEOUT: "3000"
+  DUNIT_PARALLEL_FORKS: "48"
+  GRADLE_TASK: upgradeTest
+  execute_test_timeout: 1h
+  PARALLEL_DUNIT: "true"
+- name: "StressNew"
+  CPUS: "96"
+  RAM: "210"
+  ARTIFACT_SLUG: stressnewtestfiles
+  CALL_STACK_TIMEOUT: "7200"
+  DUNIT_PARALLEL_FORKS: "24"
+  GRADLE_TASK: repeatTest
+  execute_test_timeout: 2h15m
+  PARALLEL_DUNIT: "true"
+- name: "WindowsAcceptance"
+  CPUS: "16"
+  RAM: "64"
+  ARTIFACT_SLUG: windows-acceptancetestfiles
+  DUNIT_PARALLEL_FORKS: "0"
+  GRADLE_TASK: :geode-assembly:acceptanceTest
+  execute_test_timeout: 6h
+  PARALLEL_DUNIT: "false"
+- name: "WindowsGfshDistributed"
+  CPUS: "16"
+  RAM: "64"
+  ARTIFACT_SLUG: windows-gfshdistributedtest
+  DUNIT_PARALLEL_FORKS: "0"
+  GRADLE_TASK: distributedTest
+  GRADLE_TASK_OPTIONS: "-PtestCategory=org.apache.geode.test.junit.categories.GfshTest"
+  execute_test_timeout: 6h
+  PARALLEL_DUNIT: "false"
+- name: "WindowsIntegration"
+  CPUS: "16"
+  RAM: "64"
+  ARTIFACT_SLUG: windows-integrationtestfiles
+  DUNIT_PARALLEL_FORKS: "0"
+  GRADLE_TASK: integrationTest
+  execute_test_timeout: 6h
+  PARALLEL_DUNIT: "false"
+- name: "WindowsUnit"
+  CPUS: "16"
+  RAM: "64"
+  ARTIFACT_SLUG: windows-unittestfiles
+  DUNIT_PARALLEL_FORKS: "0"
+  GRADLE_TASK: test
+  execute_test_timeout: 6h
+  PARALLEL_DUNIT: "false"

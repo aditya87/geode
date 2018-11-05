@@ -68,6 +68,7 @@ import org.apache.geode.DataSerializer;
 import org.apache.geode.ForcedDisconnectException;
 import org.apache.geode.GemFireConfigException;
 import org.apache.geode.GemFireIOException;
+import org.apache.geode.InternalGemFireError;
 import org.apache.geode.SystemConnectException;
 import org.apache.geode.distributed.DistributedMember;
 import org.apache.geode.distributed.DistributedSystemDisconnectedException;
@@ -99,9 +100,7 @@ import org.apache.geode.internal.VersionedDataInputStream;
 import org.apache.geode.internal.admin.remote.RemoteTransportConfig;
 import org.apache.geode.internal.cache.DirectReplyMessage;
 import org.apache.geode.internal.cache.DistributedCacheOperation;
-import org.apache.geode.internal.i18n.LocalizedStrings;
 import org.apache.geode.internal.logging.log4j.AlertAppender;
-import org.apache.geode.internal.logging.log4j.LocalizedMessage;
 import org.apache.geode.internal.net.SocketCreator;
 import org.apache.geode.internal.tcp.MemberShunnedException;
 
@@ -167,6 +166,12 @@ public class JGroupsMessenger implements Messenger {
 
   private GMSEncrypt encrypt;
 
+  /**
+   * DistributedMember identifiers already used, either in this JGroupsMessenger instance
+   * or in a past one & retained through an auto-reconnect.
+   */
+  private Set<DistributedMember> usedDistributedMemberIdentifiers = new HashSet<>();
+
   @Override
   @edu.umd.cs.findbugs.annotations.SuppressWarnings(
       value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
@@ -191,7 +196,7 @@ public class JGroupsMessenger implements Messenger {
     is = ClassPathLoader.getLatest().getResourceAsStream(getClass(), r);
     if (is == null) {
       throw new GemFireConfigException(
-          LocalizedStrings.GroupMembershipService_CANNOT_FIND_0.toLocalizedString(r));
+          String.format("Cannot find %s", r));
     }
 
     String properties;
@@ -207,8 +212,7 @@ public class JGroupsMessenger implements Messenger {
       properties = sb.toString();
     } catch (Exception ex) {
       throw new GemFireConfigException(
-          LocalizedStrings.GroupMembershipService_AN_EXCEPTION_WAS_THROWN_WHILE_READING_JGROUPS_CONFIG
-              .toLocalizedString(),
+          "An Exception was thrown while reading JGroups config.",
           ex);
     }
 
@@ -298,11 +302,13 @@ public class JGroupsMessenger implements Messenger {
     // start the jgroups channel and establish the membership ID
     boolean reconnecting = false;
     try {
-      Object oldChannel = services.getConfig().getTransport().getOldDSMembershipInfo();
-      if (oldChannel != null) {
+      Object oldDSMembershipInfo = services.getConfig().getTransport().getOldDSMembershipInfo();
+      if (oldDSMembershipInfo != null) {
         logger.debug("Reusing JGroups channel from previous system", properties);
+        MembershipInformation oldInfo = (MembershipInformation) oldDSMembershipInfo;
+        myChannel = oldInfo.getChannel();
+        usedDistributedMemberIdentifiers = oldInfo.getMembershipIdentifiers();
 
-        myChannel = (JChannel) oldChannel;
         // scrub the old channel
         ViewId vid = new ViewId(new JGAddress(), 0);
         List<Address> members = new ArrayList<>();
@@ -359,6 +365,11 @@ public class JGroupsMessenger implements Messenger {
 
   }
 
+  @Override
+  public boolean isOldMembershipIdentifier(DistributedMember id) {
+    return usedDistributedMemberIdentifiers.contains(id);
+  }
+
   /**
    * JGroups picks an IPv6 address if preferIPv4Stack is false or not set and preferIPv6Addresses is
    * not set or is true. We want it to use an IPv4 address for a dual-IP stack so that both IPv4 and
@@ -379,6 +390,10 @@ public class JGroupsMessenger implements Messenger {
 
   @Override
   public void stop() {
+    if (localAddress != null && localAddress.getVmViewId() >= 0) {
+      // keep track of old addresses that were used to successfully join the cluster
+      usedDistributedMemberIdentifiers.add(localAddress);
+    }
     if (this.myChannel != null) {
       if ((services.isShutdownDueToForcedDisconnect() && services.isAutoReconnectEnabled())
           || services.getManager().isReconnectingDS()) {
@@ -480,8 +495,8 @@ public class JGroupsMessenger implements Messenger {
         ipaddr = (IpAddress) getAddress.invoke(udp, new Object[0]);
         this.jgAddress = new JGAddress(logicalAddress, ipaddr);
       } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
-        logger
-            .info("Unable to find getPhysicallAddress method in UDP - parsing its address instead");
+        throw new InternalGemFireError(
+            "Unable to configure JGroups channel for membership communications", e);
       }
     }
 
@@ -513,7 +528,6 @@ public class JGroupsMessenger implements Messenger {
     gmsMember.setMemberWeight((byte) (services.getConfig().getMemberWeight() & 0xff));
     gmsMember.setNetworkPartitionDetectionEnabled(
         services.getConfig().getDistributionConfig().getEnableNetworkPartitionDetection());
-
   }
 
   @Override
@@ -698,7 +712,7 @@ public class JGroupsMessenger implements Messenger {
           }
         }
         final String channelClosed =
-            LocalizedStrings.GroupMembershipService_CHANNEL_CLOSED.toLocalizedString();
+            "Channel closed";
         throw new DistributedSystemDisconnectedException(channelClosed, problem);
       }
     } // useMcast
@@ -775,7 +789,7 @@ public class JGroupsMessenger implements Messenger {
             }
           }
           final String channelClosed =
-              LocalizedStrings.GroupMembershipService_CHANNEL_CLOSED.toLocalizedString();
+              "Channel closed";
           throw new DistributedSystemDisconnectedException(channelClosed, problem);
         }
       } // send individually
@@ -1001,8 +1015,7 @@ public class JGroupsMessenger implements Messenger {
       problem = e;
     }
     if (problem != null) {
-      logger.error(LocalizedMessage.create(
-          LocalizedStrings.GroupMembershipService_EXCEPTION_DESERIALIZING_MESSAGE_PAYLOAD_0, jgmsg),
+      logger.error(String.format("Exception deserializing message payload: %s", jgmsg),
           problem);
       return null;
     }
@@ -1193,6 +1206,10 @@ public class JGroupsMessenger implements Messenger {
   @Override
   public void emergencyClose() {
     this.view = null;
+    if (localAddress.getVmViewId() >= 0) {
+      // keep track of old addresses that were used to successfully join the cluster
+      usedDistributedMemberIdentifiers.add(localAddress);
+    }
     if (this.myChannel != null) {
       if ((services.isShutdownDueToForcedDisconnect() && services.isAutoReconnectEnabled())
           || services.getManager().isReconnectingDS()) {
@@ -1214,7 +1231,8 @@ public class JGroupsMessenger implements Messenger {
       }
     }
     GMSQuorumChecker qc =
-        new GMSQuorumChecker(view, services.getConfig().getLossThreshold(), this.myChannel);
+        new GMSQuorumChecker(view, services.getConfig().getLossThreshold(), this.myChannel,
+            usedDistributedMemberIdentifiers);
     qc.initialize();
     return qc;
   }

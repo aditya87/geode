@@ -23,16 +23,7 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
   [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
 SCRIPTDIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-
-if ! [ -x "$(command -v spruce)" ]; then
-    echo "Spruce must be installed for pipeline deployment to work."
-    echo "For macos: 'brew tap starkandwayne/cf; brew install spruce'"
-    echo "For Ubuntu: follow the instructions at https://github.com/geofffranks/spruce"
-    echo ""
-    exit 1
-else
-    SPRUCE=$(which spruce || true)
-fi
+GEODEBUILDDIR="${SCRIPTDIR}/../geode-build"
 
 set -e
 
@@ -45,55 +36,43 @@ if [ "${GEODE_BRANCH}" = "HEAD" ]; then
   exit 1
 fi
 
-SANITIZED_GEODE_BRANCH=$(echo ${GEODE_BRANCH} | tr "/" "-" | tr '[:upper:]' '[:lower:]')
 
-BIN_DIR=${OUTPUT_DIRECTORY}/bin
-TMP_DIR=${OUTPUT_DIRECTORY}/tmp
-mkdir -p ${BIN_DIR} ${TMP_DIR}
-curl -o ${BIN_DIR}/fly "https://concourse.apachegeode-ci.info/api/v1/cli?arch=amd64&platform=linux"
-chmod +x ${BIN_DIR}/fly
+echo "Sanitized Geode Fork = ${SANITIZED_GEODE_FORK}"
+echo "Sanitized Geode Branch = ${SANITIZED_GEODE_BRANCH}"
 
-PATH=${PATH}:${BIN_DIR}
+MY_NAME=$(curl -s "http://metadata.google.internal/computeMetadata/v1/instance/name" -H "Metadata-Flavor: Google")
+MY_ZONE=$(curl -s "http://metadata.google.internal/computeMetadata/v1/instance/zone" -H "Metadata-Flavor: Google")
+MY_ZONE=${MY_ZONE##*/}
+NETWORK_INTERFACE_INFO="$(gcloud compute instances describe ${MY_NAME} --zone ${MY_ZONE} --format="json(networkInterfaces)")"
+GCP_NETWORK=$(echo ${NETWORK_INTERFACE_INFO} | jq -r '.networkInterfaces[0].network')
+GCP_NETWORK=${GCP_NETWORK##*/}
+GCP_SUBNETWORK=$(echo ${NETWORK_INTERFACE_INFO} | jq -r '.networkInterfaces[0].subnetwork')
+GCP_SUBNETWORK=${GCP_SUBNETWORK##*/}
+ENV_ID=$(echo ${GCP_NETWORK} | awk -F- '{ print $1}')
+VERSION_BUCKET="concourse-${ENV_ID}-version"
 
-for i in ${SCRIPTDIR}/test-stubs/*.yml; do
-  X=$(basename $i)
-  echo "Merging ${i} into ${TMP_DIR}/${X}"
-  ${SPRUCE} merge --prune metadata \
-    <(echo "metadata:"; \
-      echo "  geode-build-branch: ${GEODE_BRANCH}"; \
-      echo "  geode-fork: ${GEODE_FORK}") \
-    ${SCRIPTDIR}/test-template.yml \
-    ${i} > ${TMP_DIR}/${X}
-done
+#echo "DEBUG INFO *****************************"
+#echo "Pipeline prefix = ${PIPELINE_PREFIX}"
+#echo "Docker image prefix = ${DOCKER_IMAGE_PREFIX}"]
+pushd ${SCRIPTDIR} 2>&1 > /dev/null
+  python3 ../render.py $(basename ${SCRIPTDIR}) ${GEODE_FORK} ${GEODE_BRANCH} ${UPSTREAM_FORK} ${REPOSITORY_PUBLIC} || exit 1
+popd 2>&1 > /dev/null
+cp ${SCRIPTDIR}/generated-pipeline.yml ${OUTPUT_DIRECTORY}/generated-pipeline.yml
 
-echo "Spruce branch-name into resources"
-${SPRUCE} merge --prune metadata \
-  ${SCRIPTDIR}/base.yml \
-  <(echo "metadata:"; \
-    echo "  geode-build-branch: ${GEODE_BRANCH}"; \
-    echo "  geode-fork: ${GEODE_FORK}"; \
-    echo "  ") \
-  ${TMP_DIR}/*.yml > ${TMP_DIR}/final.yml
+grep -n . ${OUTPUT_DIRECTORY}/generated-pipeline.yml
 
+cat > ${OUTPUT_DIRECTORY}/pipeline-vars.yml <<YML
+geode-build-branch: ${GEODE_BRANCH}
+geode-fork: ${GEODE_FORK}
+geode-repo-name: ${GEODE_REPO_NAME}
+upstream-fork: ${UPSTREAM_FORK}
+pipeline-prefix: "${PIPELINE_PREFIX}"
+public-pipelines: ${PUBLIC_PIPELINES}
+gcp-project: ${GCP_PROJECT}
+version-bucket: ${VERSION_BUCKET}
+artifact-bucket: ${ARTIFACT_BUCKET}
+gradle-global-args: ${GRADLE_GLOBAL_ARGS}
+maven-snapshot-bucket: ${MAVEN_SNAPSHOT_BUCKET}
+YML
 
-TARGET="geode"
-
-TEAM="staging"
-if [[ "${GEODE_BRANCH}" == "develop" ]] || [[ ${GEODE_BRANCH} =~ ^release/* ]]; then
-  TEAM="main"
-fi
-
-if [[ "${GEODE_FORK}" == "apache" ]]; then
-  PIPELINE_NAME=${SANITIZED_GEODE_BRANCH}
-  DOCKER_IMAGE_PREFIX=""
-else
-  PIPELINE_NAME="${GEODE_FORK}-${SANITIZED_GEODE_BRANCH}"
-  DOCKER_IMAGE_PREFIX="${PIPELINE_NAME}-"
-fi
-
-fly login -t ${TARGET} -n ${TEAM} -c https://concourse.apachegeode-ci.info -u ${CONCOURSE_USERNAME} -p ${CONCOURSE_PASSWORD}
-fly -t ${TARGET} set-pipeline --non-interactive \
-  --pipeline ${PIPELINE_NAME} \
-  --var docker-image-prefix=${DOCKER_IMAGE_PREFIX} \
-  --config ${TMP_DIR}/final.yml
 

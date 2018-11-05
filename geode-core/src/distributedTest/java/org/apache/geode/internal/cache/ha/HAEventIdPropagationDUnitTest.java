@@ -20,6 +20,7 @@ import static org.apache.geode.test.dunit.Assert.assertNotNull;
 import static org.apache.geode.test.dunit.Assert.assertNull;
 import static org.apache.geode.test.dunit.Assert.assertTrue;
 import static org.apache.geode.test.dunit.Assert.fail;
+import static org.apache.geode.test.dunit.LogWriterUtils.getLogWriter;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -54,13 +55,13 @@ import org.apache.geode.internal.cache.CacheServerImpl;
 import org.apache.geode.internal.cache.EntryEventImpl;
 import org.apache.geode.internal.cache.EventID;
 import org.apache.geode.internal.cache.RegionEventImpl;
-import org.apache.geode.internal.cache.tier.sockets.ConflationDUnitTest;
+import org.apache.geode.internal.cache.tier.sockets.ConflationDUnitTestHelper;
+import org.apache.geode.test.awaitility.GeodeAwaitility;
 import org.apache.geode.test.dunit.Assert;
 import org.apache.geode.test.dunit.Host;
 import org.apache.geode.test.dunit.LogWriterUtils;
 import org.apache.geode.test.dunit.NetworkUtils;
 import org.apache.geode.test.dunit.VM;
-import org.apache.geode.test.dunit.Wait;
 import org.apache.geode.test.dunit.WaitCriterion;
 import org.apache.geode.test.dunit.internal.JUnit4DistributedTestCase;
 import org.apache.geode.test.junit.categories.ClientSubscriptionTest;
@@ -94,7 +95,7 @@ public class HAEventIdPropagationDUnitTest extends JUnit4DistributedTestCase {
   public final void postSetUp() throws Exception {
     final Host host = Host.getHost(0);
     server1 = host.getVM(0);
-    server1.invoke(() -> ConflationDUnitTest.unsetIsSlowStart());
+    server1.invoke(() -> ConflationDUnitTestHelper.unsetIsSlowStart());
     client1 = host.getVM(2);
   }
 
@@ -209,9 +210,9 @@ public class HAEventIdPropagationDUnitTest extends JUnit4DistributedTestCase {
         return null;
       }
     };
-    Wait.waitForCriterion(ev, 10 * 1000, 200, true);
+    GeodeAwaitility.await().untilAsserted(ev);
     synchronized (map) {
-      LogWriterUtils.getLogWriter()
+      getLogWriter()
           .info("assertThreadIdToSequenceIdMapisNotNullButEmpty: map size is " + map.size());
       assertTrue(map.size() == 1);
     }

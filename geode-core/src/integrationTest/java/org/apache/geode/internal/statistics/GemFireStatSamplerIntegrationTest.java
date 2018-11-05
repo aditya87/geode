@@ -107,9 +107,6 @@ public class GemFireStatSamplerIntegrationTest extends StatSamplerTestCase {
    */
   @Test
   public void testBasics() throws Exception {
-    final String osName = System.getProperty("os.name", "unknown");
-    assumeFalse(osName.equals("Windows 7"));
-
     connect(createGemFireProperties());
 
     GemFireStatSampler statSampler = getGemFireStatSampler();
@@ -131,8 +128,6 @@ public class GemFireStatSamplerIntegrationTest extends StatSamplerTestCase {
     Assert.assertEquals(SocketCreator.getHostName(SocketCreator.getLocalHost()),
         statSampler.getSystemDirectoryPath());
 
-    AllStatistics allStats = new AllStatistics(statSampler);
-
     VMStatsContract vmStats = statSampler.getVMStats();
     assertNotNull(vmStats);
     assertTrue(vmStats instanceof VMStats50);
@@ -143,8 +138,20 @@ public class GemFireStatSamplerIntegrationTest extends StatSamplerTestCase {
 
     Method getProcessStats = getGemFireStatSampler().getClass().getMethod("getProcessStats");
     assertNotNull(getProcessStats);
+  }
+
+  @Test
+  public void testBasicProcessStats() throws Exception {
+    final String osName = System.getProperty("os.name", "unknown");
+    assumeFalse(osName.contains("Windows"));
+
+    connect(createGemFireProperties());
+    GemFireStatSampler statSampler = getGemFireStatSampler();
+    assertTrue(statSampler.waitForInitialization(5000));
 
     ProcessStats processStats = statSampler.getProcessStats();
+    AllStatistics allStats = new AllStatistics(statSampler);
+
     if (osName.equals("SunOS")) {
       assertNotNull(processStats);
       assertTrue(PureJavaMode.osStatsAreAvailable());
@@ -471,29 +478,16 @@ public class GemFireStatSamplerIntegrationTest extends StatSamplerTestCase {
     final String tenuredPoolName = HeapMemoryMonitor.getTenuredMemoryPoolMXBean().getName();
     logger.info("TenuredPoolName: {}", tenuredPoolName);
 
-    final List<Statistics> list = ((StatisticsManager) this.system).getStatsList();
-    assertFalse(list.isEmpty());
-
     boolean done = false;
     try {
       for (StopWatch time = new StopWatch(true); !done && time.elapsedTimeMillis() < 5000;) {
         Thread.sleep(10);
-        int i = 0;
-        synchronized (list) {
-          for (Object obj : list) {
-            ++i;
-            logger.info("List:{}:{}", i, obj);
-            if (obj instanceof StatisticsImpl) {
-              StatisticsImpl si = (StatisticsImpl) obj;
-              logger.info("stat:{}", si.getTextId());
-              if (si.getTextId().contains(tenuredPoolName)) {
-                statSampler.addLocalStatListener(listener, si, "currentUsedMemory");
-                done = true;
-              }
-            }
-          }
+        Statistics si =
+            HeapMemoryMonitor.getTenuredPoolStatistics((StatisticsManager) this.system);
+        if (si != null) {
+          statSampler.addLocalStatListener(listener, si, "currentUsedMemory");
+          done = true;
         }
-        // done = false;
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();

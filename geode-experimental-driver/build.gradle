@@ -16,15 +16,18 @@
  */
 
 dependencies {
-    compile project(':geode-common')
-    compile project(':geode-protobuf-messages')
+  compile(project(':geode-common'))
+  compile(project(':geode-protobuf-messages'))
+  testCompile(project(':geode-core'))
+  testCompile(project(':geode-junit')) {
+    exclude module: 'geode-core'
+  }
+  testCompile(project(':geode-protobuf'))
+  integrationTestCompile(project(':geode-core'))
+  integrationTestCompile(project(':geode-dunit')) {
+    exclude module: 'geode-core'
+  }
+  integrationTestCompile(project(':geode-protobuf'))
 
-    compile 'com.google.protobuf:protobuf-java:' + project.'protobuf-java.version'
-    testCompile project(':geode-core')
-    testCompile project(':geode-junit')
-    testCompile project(':geode-protobuf')
-    testCompile files(project(':geode-core').sourceSets.test.output)
-
-    // TODO build - move dunit framework to shared module.
-    integrationTestCompile files(project(':geode-core').sourceSets.integrationTest.output)
+  compile('com.google.protobuf:protobuf-java:' + project.'protobuf-java.version')
 }

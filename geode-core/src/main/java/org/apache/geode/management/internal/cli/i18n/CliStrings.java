@@ -170,6 +170,8 @@ public class CliStrings {
       "Unable to locate the Java executables and dependencies.  Please set the JAVA_HOME environment variable.";
   public static final String CACHE_XML_NOT_FOUND_MESSAGE =
       "Warning: The Geode cache XML file {0} could not be found.";
+  public static final String CLUSTER_CONFIG_PRECEDENCE_OVER_CACHE_XML_WARN =
+      "NOTE: If cluster configuration is enabled, then those settings will take precedence over: ";
   public static final String GEODE_0_PROPERTIES_1_NOT_FOUND_MESSAGE =
       "Warning: The Geode {0}properties file {1} could not be found.";
   public static final String MEMBER_NOT_FOUND_ERROR_MESSAGE =
@@ -1545,7 +1547,7 @@ public class CliStrings {
   public static final String HINT__MSG__SHELL_NOT_INITIALIZED =
       "Shell is not initialized properly. Please restart the shell. Check gfsh-<timestamp>.log for errors.";
   public static final String HINT__MSG__UNKNOWN_TOPIC =
-      "Unknown topic: {0}. Use " + HINT + "; to view the list of available topics.";
+      "Unknown topic: {0}. Use " + HINT + " to view the list of available topics.";
   public static final String HINT__MSG__TOPICS_AVAILABLE =
       "Hints are available for the following topics. Use \"" + HINT
           + " <topic-name>\" for a specific hint.";
@@ -1592,6 +1594,9 @@ public class CliStrings {
   public static final String IMPORT_DATA__INVOKE_CALLBACKS = "invoke-callbacks";
   public static final String IMPORT_DATA__INVOKE_CALLBACKS__HELP =
       "Whether callbacks should be invoked";
+
+  public static final String INTERCEPTOR_PASSWORD = "Password: ";
+  public static final String INTERCEPTOR_USERNAME = "Username: ";
 
   /* 'list async-event-queues' command */
   public static final String LIST_ASYNC_EVENT_QUEUES = "list async-event-queues";
@@ -2401,7 +2406,7 @@ public class CliStrings {
   public static final String START_LOCATOR__CONNECT__HELP =
       "When connect is set to false or when locator is started with a security manager using --J=-Dgemfire.security-manager option, Gfsh does not automatically connect to the locator which is started using this command.";
   public static final String START_LOCATOR__USE__0__TO__CONNECT_WITH_SECURITY =
-      "Security Manager is enabled - unable to auto-connect. Please use \"{0}\" to connect Gfsh to the locator.";
+      "Unable to auto-connect (Security Manager may be enabled). Please use \"{0}\" to connect Gfsh to the locator.";
   public static final String START_LOCATOR__ENABLE__SHARED__CONFIGURATION =
       ENABLE_CLUSTER_CONFIGURATION;
   public static final String START_LOCATOR__ENABLE__SHARED__CONFIGURATION__HELP =
@@ -2473,7 +2478,7 @@ public class CliStrings {
       "The IP address on which the Server will be bound.  By default, the Server is bound to all local addresses.";
   public static final String START_SERVER__CACHE_XML_FILE = CACHE_XML_FILE;
   public static final String START_SERVER__CACHE_XML_FILE__HELP =
-      "Specifies the name of the XML file or resource to initialize the cache with when it is created.";
+      "Specifies the name of the cache XML file or resource to initialize the cache with when it is created. NOTE: If cluster configuration is enabled, then it will take precedence over this option";
   public static final String START_SERVER__CLASSPATH = "classpath";
   public static final String START_SERVER__CLASSPATH__HELP =
       "Location of user application classes required by the Server. The user classpath is prepended to the Server's classpath.";

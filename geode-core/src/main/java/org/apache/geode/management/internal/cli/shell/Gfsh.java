@@ -46,6 +46,7 @@ import org.springframework.shell.event.ShellStatus.Status;
 import org.apache.geode.internal.Banner;
 import org.apache.geode.internal.GemFireVersion;
 import org.apache.geode.internal.lang.ClassUtils;
+import org.apache.geode.internal.logging.LoggingThread;
 import org.apache.geode.internal.process.signal.AbstractSignalNotificationHandler;
 import org.apache.geode.internal.util.ArgumentRedactor;
 import org.apache.geode.internal.util.HostName;
@@ -58,6 +59,7 @@ import org.apache.geode.management.internal.cli.GfshParser;
 import org.apache.geode.management.internal.cli.LogWrapper;
 import org.apache.geode.management.internal.cli.i18n.CliStrings;
 import org.apache.geode.management.internal.cli.result.CommandResult;
+import org.apache.geode.management.internal.cli.result.LegacyCommandResult;
 import org.apache.geode.management.internal.cli.result.ResultBuilder;
 import org.apache.geode.management.internal.cli.shell.jline.ANSIHandler;
 import org.apache.geode.management.internal.cli.shell.jline.ANSIHandler.ANSIStyle;
@@ -483,7 +485,7 @@ public class Gfsh extends JLineShell {
    * Starts this GemFire Shell with console.
    */
   public void start() {
-    runner = new Thread(this, getShellName());
+    runner = new LoggingThread(getShellName(), false, this);
     runner.start();
   }
 
@@ -559,6 +561,19 @@ public class Gfsh extends JLineShell {
 
   public LogWrapper getGfshFileLogger() {
     return gfshFileLogger;
+  }
+
+  /**
+   * Executes a single command string.
+   * It substitutes the variables defined within the command, if any, and then delegates to the
+   * default execution.
+   *
+   * @param line command string to be executed
+   * @return command execution result.
+   */
+  @Override
+  public org.springframework.shell.core.CommandResult executeCommand(String line) {
+    return super.executeCommand(!line.contains("$") ? line : expandProperties(line));
   }
 
   /**
@@ -695,7 +710,10 @@ public class Gfsh extends JLineShell {
 
         resultTypeTL.set(null);
 
-        if (result instanceof CommandResult) {
+        // this only saves the incoming file to the user.dir. We should not rely on this
+        // to save the exported file at this point. All file saving should be done in the
+        // specific command's postExecutor
+        if (result instanceof LegacyCommandResult) {
           CommandResult cmdResult = (CommandResult) result;
           if (cmdResult.hasIncomingFiles()) {
             boolean isAlreadySaved = cmdResult.getNumTimesSaved() > 0;
@@ -1125,7 +1143,7 @@ public class Gfsh extends JLineShell {
     return gfshHistory;
   }
 
-  private String expandProperties(final String input) {
+  protected String expandProperties(final String input) {
     String output = input;
     Scanner s = new Scanner(output);
     String foundInLine;

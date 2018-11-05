@@ -53,7 +53,8 @@ public class ExportConfigCommandDUnitTest {
   @Parameters({"true", "false"})
   public void testExportConfig(final boolean connectOverHttp) throws Exception {
     MemberVM server0 = startupRule.startServerVM(0,
-        x -> x.withProperty(GROUPS, "Group1").withJMXManager().withEmbeddedLocator());
+        x -> x.withProperty(GROUPS, "Group1").withJMXManager().withHttpService()
+            .withEmbeddedLocator());
 
     if (connectOverHttp) {
       gfsh.connectAndVerify(server0.getHttpPort(), GfshCommandRule.PortType.http);
@@ -84,7 +85,7 @@ public class ExportConfigCommandDUnitTest {
     // export just one member's config
     tempDir = temporaryFolder.newFolder("member0");
     gfsh.executeAndAssertThat("export config --member=server-0 --dir=" + tempDir.getAbsolutePath())
-        .statusIsSuccess();
+        .statusIsSuccess().containsOutput(tempDir.getAbsolutePath());
 
     expectedFiles = Arrays.asList("server-0-cache.xml", "server-0-gf.properties");
 
@@ -96,7 +97,7 @@ public class ExportConfigCommandDUnitTest {
     // export group2 config into a folder
     tempDir = temporaryFolder.newFolder("group2");
     gfsh.executeAndAssertThat("export config --group=Group2 --dir=" + tempDir.getAbsolutePath())
-        .statusIsSuccess();
+        .statusIsSuccess().containsOutput(tempDir.getAbsolutePath());
 
     expectedFiles = Arrays.asList("server-1-cache.xml", "server-2-cache.xml",
         "server-1-gf.properties", "server-2-gf.properties");

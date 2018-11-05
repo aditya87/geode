@@ -16,18 +16,42 @@
  */
 
 dependencies {
-  compileOnly project(':geode-core')
-  testCompile project(':geode-core')
+  compile(project(':geode-core'))
+  testCompile(project(':geode-core'))
+  testCompile(project(':geode-junit')) {
+    exclude module: 'geode-core'
+  }
+  integrationTestCompile(project(':geode-dunit')) {
+    exclude module: 'geode-core'
+  }
+  integrationTestCompile(project(':geode-junit')) {
+    exclude module: 'geode-core'
+  }
+  distributedTestCompile(project(':geode-junit')) {
+    exclude module: 'geode-core'
+  }
+  upgradeTestCompile(project(':geode-dunit')) {
+    exclude module: 'geode-core'
+  }
+  upgradeTestCompile(project(':geode-junit')) {
+    exclude module: 'geode-core'
+  }
 
-  // TODO build - move shared source to common library.
-  testCompile files(project(':geode-core').sourceSets.test.output)
-  testCompile files(project(':geode-old-versions').sourceSets.main.output)
-  testCompile project(':geode-junit')
+  compile('org.apache.logging.log4j:log4j-api:' + project.'log4j.version')
 
-  // TODO build - move dunit framework to shared module.
-  integrationTestCompile files(project(':geode-core').sourceSets.integrationTest.output)
-  distributedTestCompile files(project(':geode-core').sourceSets.distributedTest.output)
-  distributedTestCompile files(project(':geode-core').sourceSets.integrationTest.output)
-  upgradeTestCompile files(project(':geode-core').sourceSets.distributedTest.output)
-  upgradeTestCompile files(project(':geode-core').sourceSets.integrationTest.output)
+  integrationTestCompile('junit:junit:' + project.'junit.version')
+  integrationTestCompile('org.awaitility:awaitility:' + project.'awaitility.version')
+
+  distributedTestCompile('commons-lang:commons-lang:' + project.'commons-lang.version')
+  distributedTestCompile('junit:junit:' + project.'junit.version')
+  distributedTestCompile('mx4j:mx4j:' + project.'mx4j.version')
+  distributedTestCompile('org.assertj:assertj-core:' + project.'assertj-core.version')
+  distributedTestCompile('org.awaitility:awaitility:' + project.'awaitility.version')
+  distributedTestCompile('org.hamcrest:hamcrest-all:' + project.'hamcrest-all.version')
+  distributedTestCompile('org.hamcrest:hamcrest-core:' + project.'hamcrest-all.version')
+  distributedTestCompile('org.hamcrest:hamcrest-library:' + project.'hamcrest-all.version')
+
+  upgradeTestCompile('junit:junit:' + project.'junit.version')
+  upgradeTestCompile('org.awaitility:awaitility:' + project.'awaitility.version')
+  upgradeTestCompile('org.mockito:mockito-core:' + project.'mockito-core.version')
 }

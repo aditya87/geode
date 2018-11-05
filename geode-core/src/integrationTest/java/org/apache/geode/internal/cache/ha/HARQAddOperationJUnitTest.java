@@ -15,6 +15,7 @@
 package org.apache.geode.internal.cache.ha;
 
 import static org.apache.geode.distributed.ConfigurationProperties.MCAST_PORT;
+import static org.apache.geode.test.awaitility.GeodeAwaitility.await;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -26,10 +27,8 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.Logger;
-import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -147,7 +146,7 @@ public class HARQAddOperationJUnitTest {
     Long cntr = (Long) conflationMap.get(KEY1);
     ConflatableObject retValue = (ConflatableObject) rq.getRegion().get(cntr);
     assertEquals(VALUE2, retValue.getValueToConflate());
-    assertEquals(1, rq.getAvalaibleIds().size());
+    assertEquals(1, rq.getAvailableIds().size());
 
     assertEquals(1, rq.getCurrentCounterSet(id1).size());
     this.logWriter.info("HARegionQueueJUnitTest : testQueueAddOperationWithConflation END");
@@ -171,13 +170,13 @@ public class HARQAddOperationJUnitTest {
     this.rq.put(c1);
 
     assertNull(rq.getConflationMapForTesting().get("region1"));
-    assertEquals(1, rq.getAvalaibleIds().size());
+    assertEquals(1, rq.getAvailableIds().size());
 
     assertEquals(1, rq.getCurrentCounterSet(id1).size());
 
     this.rq.put(c2);
     assertNull(rq.getConflationMapForTesting().get("region1"));
-    assertEquals(2, rq.getAvalaibleIds().size());
+    assertEquals(2, rq.getAvailableIds().size());
     assertEquals(2, rq.getCurrentCounterSet(id1).size());
 
     Iterator iter = rq.getCurrentCounterSet(id1).iterator();
@@ -212,7 +211,7 @@ public class HARQAddOperationJUnitTest {
     this.rq.put(obj);
     this.rq.take();
     assertNull(rq.getRegion().get(KEY1));
-    assertEquals(0, this.rq.getAvalaibleIds().size());
+    assertEquals(0, this.rq.getAvailableIds().size());
     Map eventsMap = this.rq.getEventsMapForTesting();
     assertEquals(1, eventsMap.size());
     assertEquals(0, rq.getCurrentCounterSet(id).size());
@@ -294,9 +293,9 @@ public class HARQAddOperationJUnitTest {
       // After the expiry of the data , AvaialbleIds size should be 0,
       // entry
       // removed from Region, LastDispatchedWrapperSet should have size 0.
-      Awaitility.await().atMost(60, TimeUnit.SECONDS)
-          .until(() -> assertEquals(0, regionqueue.getRegion().entrySet(false).size()));
-      assertEquals(0, regionqueue.getAvalaibleIds().size());
+      await()
+          .untilAsserted(() -> assertEquals(0, regionqueue.getRegion().entrySet(false).size()));
+      assertEquals(0, regionqueue.getAvailableIds().size());
       assertNull(regionqueue.getCurrentCounterSet(id1));
 
     } catch (Exception e) {
@@ -323,11 +322,11 @@ public class HARQAddOperationJUnitTest {
     }
 
     // Available id size should be == 10 after puting ten entries
-    assertEquals(10, regionqueue.getAvalaibleIds().size());
+    assertEquals(10, regionqueue.getAvailableIds().size());
 
     // QRM message for therad id 1 and last sequence id 5
     regionqueue.removeDispatchedEvents(ids[4]);
-    assertEquals(5, regionqueue.getAvalaibleIds().size());
+    assertEquals(5, regionqueue.getAvailableIds().size());
     assertEquals(5, regionqueue.getCurrentCounterSet(ids[0]).size());
 
     Iterator iter = regionqueue.getCurrentCounterSet(ids[0]).iterator();
@@ -338,7 +337,7 @@ public class HARQAddOperationJUnitTest {
     }
 
     regionqueue.removeDispatchedEvents(ids[9]);
-    assertEquals(0, regionqueue.getAvalaibleIds().size());
+    assertEquals(0, regionqueue.getAvailableIds().size());
   }
 
   /**
@@ -388,7 +387,7 @@ public class HARQAddOperationJUnitTest {
     if (testFailed)
       fail("Test failed due to " + message);
 
-    assertEquals(0, regionqueue.getAvalaibleIds().size());
+    assertEquals(0, regionqueue.getAvailableIds().size());
     assertEquals(2, regionqueue.getLastDispatchedSequenceId(id2));
   }
 
@@ -438,7 +437,7 @@ public class HARQAddOperationJUnitTest {
     if (testFailed)
       fail("Test failed due to " + message);
 
-    assertEquals(0, regionqueue.getAvalaibleIds().size());
+    assertEquals(0, regionqueue.getAvailableIds().size());
     assertEquals(2, regionqueue.getLastDispatchedSequenceId(id2));
   }
 
@@ -531,8 +530,8 @@ public class HARQAddOperationJUnitTest {
             + regionqueue.getEventsMapForTesting().size(),
         numOfThreads, regionqueue.getEventsMapForTesting().size());
     assertEquals(
-        "size of availableids should 1 but actual size " + regionqueue.getAvalaibleIds().size(), 1,
-        regionqueue.getAvalaibleIds().size());
+        "size of availableids should 1 but actual size " + regionqueue.getAvailableIds().size(), 1,
+        regionqueue.getAvailableIds().size());
     int count = 0;
     for (int i = 0; i < numOfThreads; i++) {
       if ((regionqueue.getCurrentCounterSet(new EventID(new byte[] {(byte) i}, i, i))).size() > 0) {
@@ -543,8 +542,8 @@ public class HARQAddOperationJUnitTest {
     assertEquals("size of the counter set is  1 but the actual size is " + count, 1, count);
 
     Long position = null;
-    if (regionqueue.getAvalaibleIds().size() == 1) {
-      position = (Long) regionqueue.getAvalaibleIds().iterator().next();
+    if (regionqueue.getAvailableIds().size() == 1) {
+      position = (Long) regionqueue.getAvailableIds().iterator().next();
     }
     ConflatableObject id = (ConflatableObject) regionqueue.getRegion().get(position);
     assertEquals(regionqueue.getCurrentCounterSet(id.getEventId()).size(), 1);
@@ -605,7 +604,7 @@ public class HARQAddOperationJUnitTest {
           regionqueue.getCurrentCounterSet(new EventID(new byte[] {(byte) i}, i, 1)).size());
     }
 
-    assertEquals(0, regionqueue.getAvalaibleIds().size());
+    assertEquals(0, regionqueue.getAvailableIds().size());
 
     this.logWriter.info("testPeekAndRemoveWithoutConflation() completed successfully");
   }
@@ -666,7 +665,7 @@ public class HARQAddOperationJUnitTest {
           regionqueue.getCurrentCounterSet(new EventID(new byte[] {(byte) i}, i, 1)).size());
     }
 
-    assertEquals("size of availableIds map should be 0 ", 0, regionqueue.getAvalaibleIds().size());
+    assertEquals("size of availableIds map should be 0 ", 0, regionqueue.getAvailableIds().size());
     assertEquals("size of conflation map should be 0 ", 0,
         ((Map) regionqueue.getConflationMapForTesting().get("region1")).size());
 
@@ -770,7 +769,7 @@ public class HARQAddOperationJUnitTest {
           regionqueue.getCurrentCounterSet(new EventID(new byte[] {(byte) i}, i, 1)).size());
     }
 
-    assertEquals(0, regionqueue.getAvalaibleIds().size());
+    assertEquals(0, regionqueue.getAvailableIds().size());
 
     this.logWriter.info("testPeekForDiffBatchSizeAndRemoveAll() completed successfully");
   }
@@ -863,7 +862,7 @@ public class HARQAddOperationJUnitTest {
     if (testFailed)
       fail("Test failed due to " + message);
 
-    assertEquals(5, regionqueue.getAvalaibleIds().size());
+    assertEquals(5, regionqueue.getAvailableIds().size());
 
     this.logWriter.info("testPeekForDiffBatchSizeAndRemoveSome() completed successfully");
   }

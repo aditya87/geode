@@ -32,6 +32,7 @@ import org.apache.geode.distributed.DistributedMember;
 import org.apache.geode.distributed.internal.InternalLocator;
 import org.apache.geode.internal.Version;
 import org.apache.geode.internal.cache.InternalCache;
+import org.apache.geode.management.ManagementService;
 import org.apache.geode.management.internal.cli.CliUtil;
 import org.apache.geode.management.internal.cli.exceptions.EntityNotFoundException;
 import org.apache.geode.management.internal.cli.functions.CliFunctionResult;
@@ -78,13 +79,23 @@ public abstract class GfshCommand implements CommandMarker {
     return cache;
   }
 
+  public <T extends ManagementService> T getManagementService() {
+    return (T) ManagementService.getExistingManagementService(cache);
+  }
+
   public ConfigurationPersistenceService getConfigurationPersistenceService() {
     InternalLocator locator = InternalLocator.getLocator();
     return locator == null ? null : locator.getConfigurationPersistenceService();
   }
 
+
   public void setCache(Cache cache) {
     this.cache = (InternalCache) cache;
+  }
+
+  public boolean isSharedConfigurationRunning() {
+    InternalLocator locator = InternalLocator.getLocator();
+    return locator != null && locator.isSharedConfigurationRunning();
   }
 
   public Subject getSubject() {
@@ -140,7 +151,7 @@ public abstract class GfshCommand implements CommandMarker {
    * if no members matches these names, an empty set would return, this does not include locators
    */
   public Set<DistributedMember> findMembers(String[] groups, String[] members) {
-    return CliUtil.findMembers(groups, members, (InternalCache) getCache());
+    return CliUtil.findMembers(groups, members, cache);
   }
 
   /**

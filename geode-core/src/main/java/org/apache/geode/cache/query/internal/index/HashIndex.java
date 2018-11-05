@@ -49,7 +49,6 @@ import org.apache.geode.cache.query.internal.CompiledIteratorDef;
 import org.apache.geode.cache.query.internal.CompiledPath;
 import org.apache.geode.cache.query.internal.CompiledSortCriterion;
 import org.apache.geode.cache.query.internal.CompiledValue;
-import org.apache.geode.cache.query.internal.CqEntry;
 import org.apache.geode.cache.query.internal.DefaultQuery;
 import org.apache.geode.cache.query.internal.ExecutionContext;
 import org.apache.geode.cache.query.internal.IndexInfo;
@@ -72,7 +71,6 @@ import org.apache.geode.internal.cache.LocalRegion;
 import org.apache.geode.internal.cache.RegionEntry;
 import org.apache.geode.internal.cache.Token;
 import org.apache.geode.internal.cache.persistence.query.CloseableIterator;
-import org.apache.geode.internal.i18n.LocalizedStrings;
 import org.apache.geode.internal.logging.LogService;
 import org.apache.geode.internal.offheap.StoredObject;
 
@@ -190,7 +188,9 @@ public class HashIndex extends AbstractIndex {
 
     try {
       if (DefaultQuery.testHook != null) {
-        DefaultQuery.testHook.doTestHook(3);
+        DefaultQuery.testHook.doTestHook(
+            DefaultQuery.TestHook.SPOTS.BEFORE_ADD_OR_UPDATE_MAPPING_OR_DESERIALIZING_NTH_STREAMINGOPERATION,
+            null);
       }
       Object newKey = TypeUtils.indexKeyFor(key);
       if (newKey.equals(QueryService.UNDEFINED)) {
@@ -270,6 +270,17 @@ public class HashIndex extends AbstractIndex {
         // It will always contain 1 element only, for this thread.
         entryToOldKeysMap.set(new Object2ObjectOpenHashMap(1));
         this.evaluator.evaluate(entry, false);
+      }
+    } else if (opCode == REMOVE_DUE_TO_GII_TOMBSTONE_CLEANUP) {
+      // we know in this specific case, that a before op was called and stored oldKey/value
+      // we also know that a regular remove won't work due to the entry no longer being present
+      // We know the old key so let's just remove mapping from the old key
+      if (entryToOldKeysMap != null) {
+        basicRemoveMapping(entryToOldKeysMap.get().get(entry), entry, true);
+      }
+    } else if (opCode == CLEAN_UP_THREAD_LOCALS) {
+      if (entryToOldKeysMap != null) {
+        entryToOldKeysMap.remove();
       }
     } else {
       // Need to reset the thread-local map as many puts and destroys might
@@ -591,7 +602,7 @@ public class HashIndex extends AbstractIndex {
     int i = 0;
     while (entriesIter.hasNext()) {
       // Check if query execution on this thread is canceled.
-      QueryMonitor.isQueryExecutionCanceled();
+      QueryMonitor.throwExceptionIfQueryOnCurrentThreadIsCanceled();
       if (IndexManager.testHook != null) {
         if (logger.isDebugEnabled()) {
           logger.debug("IndexManager TestHook is set in addToResultsFromEntries.");
@@ -666,11 +677,8 @@ public class HashIndex extends AbstractIndex {
         ok = QueryUtils.applyCondition(iterOps, context);
       }
       if (ok) {
-        if (context != null && context.isCqQueryContext()) {
-          result.add(new CqEntry(re.getKey(), value));
-        } else {
-          applyProjection(projAttrib, context, result, value, intermediateResults, isIntersection);
-        }
+        applyCqOrProjection(projAttrib, context, result, value, intermediateResults,
+            isIntersection, re.getKey());
         if (limit != -1 && result.size() == limit) {
           observer.limitAppliedAtIndexLevel(this, limit, result);
           return;
@@ -1156,7 +1164,7 @@ public class HashIndex extends AbstractIndex {
         QueryInvocationTargetException, IMQException {
       if (QueryMonitor.isLowMemory()) {
         throw new IMQException(
-            LocalizedStrings.IndexCreationMsg_CANCELED_DUE_TO_LOW_MEMORY.toLocalizedString());
+            "Index creation canceled due to low memory");
       }
 
       Object indexKey = null;
