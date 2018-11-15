@@ -84,10 +84,10 @@ public class DestroyAsyncEventQueueCommandTest {
   public void noOptionalGroup_successful() throws Exception {
     members.add(member1);
     members.add(member2);
-    functionResults.add(new CliFunctionResult("member2", true, String.format(
-        DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_DESTROYED, "queue1")));
-    functionResults.add(new CliFunctionResult("member1", true, String.format(
-        DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_DESTROYED, "queue1")));
+    functionResults.add(new CliFunctionResult("member2", CliFunctionResult.StatusState.OK,
+            String.format(DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_DESTROYED, "queue1")));
+    functionResults.add(new CliFunctionResult("member1", CliFunctionResult.StatusState.OK,
+            String.format(DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_DESTROYED, "queue1")));
 
     gfsh.executeAndAssertThat(command, "destroy async-event-queue --id=queue1").statusIsSuccess()
         .containsOutput("\\\"queue1\\\" destroyed").tableHasRowCount("Member", 2);
@@ -97,11 +97,11 @@ public class DestroyAsyncEventQueueCommandTest {
   public void ifExistsSpecified_defaultIsTrue() throws Exception {
     members.add(member1);
     members.add(member2);
-    functionResults.add(new CliFunctionResult("member1", true,
+    functionResults.add(new CliFunctionResult("member1", CliFunctionResult.StatusState.OK,
         String.format(
             "Skipping: " + DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_NOT_FOUND,
             "nonexistentQueue")));
-    functionResults.add(new CliFunctionResult("member2", true,
+    functionResults.add(new CliFunctionResult("member2", CliFunctionResult.StatusState.OK,
         String.format(
             "Skipping: " + DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_NOT_FOUND,
             "nonexistentQueue")));
@@ -119,10 +119,10 @@ public class DestroyAsyncEventQueueCommandTest {
   public void ifExistsNotSpecified_isFalse() throws Exception {
     members.add(member1);
     members.add(member2);
-    functionResults.add(new CliFunctionResult("member1", false,
+    functionResults.add(new CliFunctionResult("member1", CliFunctionResult.StatusState.ERROR,
         String.format(DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_NOT_FOUND,
             "nonexistentQueue")));
-    functionResults.add(new CliFunctionResult("member2", false,
+    functionResults.add(new CliFunctionResult("member2", CliFunctionResult.StatusState.ERROR,
         String.format(DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_NOT_FOUND,
             "nonexistentQueue")));
     ArgumentCaptor<DestroyAsyncEventQueueFunctionArgs> argCaptor =
@@ -151,10 +151,10 @@ public class DestroyAsyncEventQueueCommandTest {
   public void ifExistsSpecifiedTrue() throws Exception {
     members.add(member1);
     members.add(member2);
-    functionResults.add(new CliFunctionResult("member1", false,
+    functionResults.add(new CliFunctionResult("member1", CliFunctionResult.StatusState.ERROR,
         String.format(DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_NOT_FOUND,
             "nonexistentQueue")));
-    functionResults.add(new CliFunctionResult("member2", false,
+    functionResults.add(new CliFunctionResult("member2", CliFunctionResult.StatusState.ERROR,
         String.format(DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_NOT_FOUND,
             "nonexistentQueue")));
     ArgumentCaptor<DestroyAsyncEventQueueFunctionArgs> argCaptor =
@@ -170,10 +170,10 @@ public class DestroyAsyncEventQueueCommandTest {
   public void mixedFunctionResults_returnsSuccess() throws Exception {
     members.add(member1);
     members.add(member2);
-    functionResults.add(new CliFunctionResult("member2", false, String.format(
-        DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_NOT_FOUND, "queue1")));
-    functionResults.add(new CliFunctionResult("member1", true, String.format(
-        DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_DESTROYED, "queue1")));
+    functionResults.add(new CliFunctionResult("member2", CliFunctionResult.StatusState.ERROR,
+            String.format(DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_NOT_FOUND, "queue1")));
+    functionResults.add(new CliFunctionResult("member1", CliFunctionResult.StatusState.OK,
+            String.format(DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_DESTROYED, "queue1")));
 
     gfsh.executeAndAssertThat(command, "destroy async-event-queue --id=queue1").statusIsSuccess();
   }
@@ -182,12 +182,12 @@ public class DestroyAsyncEventQueueCommandTest {
   public void mixedFunctionResultsWithIfExists_returnsSuccess() throws Exception {
     members.add(member1);
     members.add(member2);
-    functionResults.add(new CliFunctionResult("member1", true,
+    functionResults.add(new CliFunctionResult("member1", CliFunctionResult.StatusState.OK,
         String.format(
             "Skipping: " + DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_NOT_FOUND,
             "queue1")));
-    functionResults.add(new CliFunctionResult("member1", true, String.format(
-        DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_DESTROYED, "queue1")));
+    functionResults.add(new CliFunctionResult("member1", CliFunctionResult.StatusState.OK,
+            String.format(DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_DESTROYED, "queue1")));
 
     gfsh.executeAndAssertThat(command, "destroy async-event-queue --id=queue1 --if-exists")
         .statusIsSuccess();

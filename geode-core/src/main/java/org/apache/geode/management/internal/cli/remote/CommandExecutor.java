@@ -151,10 +151,21 @@ public class CommandExecutor {
       groups = groupInput.split(",");
     }
 
+    updateGroupConfig(ccService, gfshCommand, groups, infoResultModel,
+        resultModel.getConfigObject());
+
+    return resultModel;
+  }
+
+  private void updateGroupConfig(InternalConfigurationPersistenceService ccService,
+      SingleGfshCommand gfshCommand,
+      String[] groups,
+      InfoResultModel infoResultModel,
+      Object configObject) {
     for (String group : groups) {
       ccService.updateCacheConfig(group, cc -> {
         try {
-          if (gfshCommand.updateConfigForGroup(group, cc, resultModel.getConfigObject())) {
+          if (gfshCommand.updateConfigForGroup(group, cc, configObject)) {
             infoResultModel
                 .addLine("Changes to configuration for group '" + group + "' are persisted.");
           } else {
@@ -172,6 +183,5 @@ public class CommandExecutor {
         return cc;
       });
     }
-    return resultModel;
   }
 }

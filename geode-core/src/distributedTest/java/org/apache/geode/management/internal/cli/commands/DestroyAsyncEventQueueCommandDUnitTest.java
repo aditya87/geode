@@ -142,7 +142,7 @@ public class DestroyAsyncEventQueueCommandDUnitTest {
   }
 
   @Test
-  public void destroyAeqOnGroupThatDoesNotExisit_returnsError() {
+  public void destroyAeqOnGroupThatDoesNotExist_returnsError() {
     gfsh.executeAndAssertThat("create async-event-queue --id=queue1 --group=group1 --listener="
         + MyAsyncEventListener.class.getName()).statusIsSuccess();
 
@@ -171,16 +171,44 @@ public class DestroyAsyncEventQueueCommandDUnitTest {
     gfsh.executeAndAssertThat("list async-event-queues").statusIsSuccess();
 
     gfsh.executeAndAssertThat("destroy async-event-queue --id=queue1").statusIsSuccess()
-        .tableHasRowWithValues("Member", "Status", "server-1",
+        .tableHasRowWithValues("Member", "Message", "server-1",
             String.format(DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_DESTROYED,
                 "queue1"))
-        .tableHasRowWithValues("Member", "Status", "server-2",
-            String.format(
-                "ERROR: "
-                    + DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_NOT_FOUND,
+        .tableHasRowWithValues("Member", "Message", "server-2",
+            String.format(DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_NOT_FOUND,
                 "queue1"));
     gfsh.executeAndAssertThat("list async-event-queues").statusIsSuccess()
         .containsOutput("No Async Event Queues Found");
+  }
+
+  @Test
+  public void destroyAeq_onlyDestroysInGivenGroup()
+      throws GfJsonException {
+    server3 = lsRule.startServerVM(3, "group3", locator.getPort());
+
+    gfsh.executeAndAssertThat("create async-event-queue --id=queue1 --group=group1 --listener="
+        + MyAsyncEventListener.class.getName()).statusIsSuccess();
+    gfsh.executeAndAssertThat("create async-event-queue --id=queue1 --group=group3 --listener="
+        + MyAsyncEventListener.class.getName()).statusIsSuccess();
+
+    locator.waitUntilAsyncEventQueuesAreReadyOnExactlyThisManyServers("queue1", 2);
+    gfsh.executeAndAssertThat("destroy async-event-queue --id=queue1 --group=group1")
+        .statusIsSuccess()
+        .tableHasRowWithValues("Member", "Message", "server-1",
+            String.format(DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_DESTROYED,
+                "queue1"));
+    gfsh.executeAndAssertThat("list async-event-queues").statusIsSuccess()
+        .tableHasRowWithValues("Member", "ID", "server-3", "queue1");
+
+    locator.invoke(() -> {
+      InternalConfigurationPersistenceService service =
+          ClusterStartupRule.getLocator().getConfigurationPersistenceService();
+      Configuration config1 = service.getConfiguration("group1");
+      assertThat(config1.getCacheXmlContent()).doesNotContain("id=\"queue1\"");
+
+      Configuration config3 = service.getConfiguration("group3");
+      assertThat(config3.getCacheXmlContent()).contains("id=\"queue1\"");
+    });
   }
 
   @Test
@@ -190,7 +218,7 @@ public class DestroyAsyncEventQueueCommandDUnitTest {
     gfsh.executeAndAssertThat("create async-event-queue --id=queue1 --group=group1 --listener="
         + MyAsyncEventListener.class.getName()).statusIsSuccess();
     gfsh.executeAndAssertThat("create async-event-queue --id=queue3 --group=group3 --listener="
-        + MyAsyncEventListener.class.getName())/* .statusIsSuccess() */;
+        + MyAsyncEventListener.class.getName()).statusIsSuccess();
 
     locator.waitUntilAsyncEventQueuesAreReadyOnExactlyThisManyServers("queue1", 1);
     locator.waitUntilAsyncEventQueuesAreReadyOnExactlyThisManyServers("queue3", 1);

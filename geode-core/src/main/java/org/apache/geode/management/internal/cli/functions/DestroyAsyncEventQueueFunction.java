@@ -17,9 +17,7 @@ package org.apache.geode.management.internal.cli.functions;
 import org.apache.geode.cache.asyncqueue.internal.AsyncEventQueueImpl;
 import org.apache.geode.cache.execute.FunctionContext;
 import org.apache.geode.internal.cache.execute.InternalFunction;
-import org.apache.geode.internal.cache.xmlcache.CacheXml;
 import org.apache.geode.management.internal.cli.commands.DestroyAsyncEventQueueCommand;
-import org.apache.geode.management.internal.configuration.domain.XmlEntity;
 
 /**
  * Function used by the 'destroy async-event-queue' gfsh command to destroy an asynchronous event
@@ -31,7 +29,7 @@ public class DestroyAsyncEventQueueFunction implements InternalFunction {
 
   @Override
   public void execute(FunctionContext context) {
-    String memberId = "";
+    String memberId;
 
     DestroyAsyncEventQueueFunctionArgs aeqArgs =
         (DestroyAsyncEventQueueFunctionArgs) context.getArguments();
@@ -43,33 +41,30 @@ public class DestroyAsyncEventQueueFunction implements InternalFunction {
       if (aeq == null) {
         if (aeqArgs.isIfExists()) {
           context.getResultSender()
-              .lastResult(new CliFunctionResult(memberId, true,
+              .lastResult(new CliFunctionResult(memberId, CliFunctionResult.StatusState.OK,
                   String.format(
                       "Skipping: "
                           + DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_NOT_FOUND,
                       aeqId)));
         } else {
-          context.getResultSender().lastResult(new CliFunctionResult(memberId, false, String.format(
-              DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_NOT_FOUND, aeqId)));
+          context.getResultSender()
+              .lastResult(new CliFunctionResult(memberId, CliFunctionResult.StatusState.ERROR,
+                  String.format(
+                      DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_NOT_FOUND,
+                      aeqId)));
         }
       } else {
-        // this is the XmlEntity that needs to be removed from the cluster config
-        XmlEntity xmlEntity = getAEQXmlEntity("id", aeqId);
-
         aeq.stop();
         aeq.destroy();
         context.getResultSender()
-            .lastResult(new CliFunctionResult(memberId, xmlEntity, String.format(
-                DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_DESTROYED, aeqId)));
+            .lastResult(
+                new CliFunctionResult(memberId, CliFunctionResult.StatusState.OK, String.format(
+                    DestroyAsyncEventQueueCommand.DESTROY_ASYNC_EVENT_QUEUE__AEQ_0_DESTROYED,
+                    aeqId)));
       }
     } catch (Exception e) {
       context.getResultSender().lastResult(new CliFunctionResult(memberId, e, e.getMessage()));
     }
-  }
-
-  XmlEntity getAEQXmlEntity(String key, String value) {
-    XmlEntity xmlEntity = new XmlEntity(CacheXml.ASYNC_EVENT_QUEUE, key, value);
-    return xmlEntity;
   }
 
   @Override

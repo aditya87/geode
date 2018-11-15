@@ -15,8 +15,6 @@
 package org.apache.geode.management.internal.cli.functions;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -31,7 +29,6 @@ import org.apache.geode.cache.asyncqueue.internal.AsyncEventQueueImpl;
 import org.apache.geode.cache.execute.FunctionContext;
 import org.apache.geode.cache.execute.ResultSender;
 import org.apache.geode.internal.cache.GemFireCacheImpl;
-import org.apache.geode.management.internal.configuration.domain.XmlEntity;
 import org.apache.geode.test.fake.Fakes;
 
 public class DestroyAsyncEventQueueFunctionTest {
@@ -63,9 +60,7 @@ public class DestroyAsyncEventQueueFunctionTest {
   }
 
   @Test
-  public void execute_validAeqId_OK() throws Throwable {
-    XmlEntity xmlEntity = mock(XmlEntity.class);
-    doReturn(xmlEntity).when(function).getAEQXmlEntity(anyString(), anyString());
+  public void execute_validAeqId_OK() {
     when(cache.getAsyncEventQueue(TEST_AEQ_ID)).thenReturn(mockAEQ);
 
     function.execute(mockContext);
@@ -73,8 +68,6 @@ public class DestroyAsyncEventQueueFunctionTest {
     CliFunctionResult result = resultCaptor.getValue();
 
     assertThat(result.isSuccessful()).isTrue();
-    assertThat(result.getXmlEntity()).isNotNull();
-    assertThat(result.getThrowable()).isNull();
   }
 
   @Test
@@ -86,7 +79,7 @@ public class DestroyAsyncEventQueueFunctionTest {
     CliFunctionResult result = resultCaptor.getValue();
 
     assertThat(result.isSuccessful()).isFalse();
-    assertThat(result.getMessage()).containsPattern(TEST_AEQ_ID + ".*not found");
+    assertThat(result.getStatusMessage()).containsPattern(TEST_AEQ_ID + ".*not found");
   }
 
   @Test
@@ -99,6 +92,7 @@ public class DestroyAsyncEventQueueFunctionTest {
     CliFunctionResult result = resultCaptor.getValue();
 
     assertThat(result.isSuccessful()).isTrue();
-    assertThat(result.getMessage()).containsPattern("Skipping:.*" + TEST_AEQ_ID + ".*not found");
+    assertThat(result.getStatusMessage())
+        .containsPattern("Skipping:.*" + TEST_AEQ_ID + ".*not found");
   }
 }
