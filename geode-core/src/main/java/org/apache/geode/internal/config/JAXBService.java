@@ -17,29 +17,64 @@
 
 package org.apache.geode.internal.config;
 
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.geode.cache.configuration.XSDRootElement;
+import org.apache.geode.internal.ClassPathLoader;
+import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.AttributesImpl;
+import org.xml.sax.helpers.XMLFilterImpl;
 
 import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.parsers.SAXParserFactory;
+import javax.xml.transform.sax.SAXSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
-
-import org.apache.commons.lang3.StringUtils;
-import org.xml.sax.SAXException;
-
-import org.apache.geode.cache.configuration.XSDRootElement;
-import org.apache.geode.internal.ClassPathLoader;
+import java.io.ByteArrayInputStream;
+import java.io.StringWriter;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class JAXBService {
   Marshaller marshaller;
   Unmarshaller unmarshaller;
+
+  class XMLCacheTagInterceptor extends XMLFilterImpl {
+    public XMLCacheTagInterceptor(XMLReader reader) {
+      super(reader);
+    }
+
+    @Override
+    public void startElement(String uri, String localName,
+                             String qName, Attributes attributes)
+            throws SAXException {
+      if (qName.equals("cache")) {
+        AttributesImpl overrideAttributes = new AttributesImpl();
+        overrideAttributes.addAttribute("", "", "xsi:schemaLocation",
+                "IDREFS",
+                "http://geode.apache.org/schema/cache http://geode.apache.org/schema/cache/cache-1.0.xsd");
+        overrideAttributes.addAttribute("", "", "version", "ID",
+                "1.0");
+        overrideAttributes.addAttribute("", "", "xmlns", "ID",
+                "http://geode.apache.org/schema/cache");
+        overrideAttributes.addAttribute("", "", "xmlns:xsi", "ID",
+                "http://www.w3.org/2001/XMLSchema-instance");
+
+        super.startElement("http://geode.apache.org/schema/cache", localName, qName,
+                attributes);
+      } else {
+        super.startElement("http://geode.apache.org/schema/cache", localName, qName, attributes);
+      }
+    }
+  }
 
   public JAXBService(Class<?>... xsdRootClasses) {
     try {
@@ -95,7 +130,14 @@ public class JAXBService {
 
   public <T> T unMarshall(String xml) {
     try {
-      return (T) unmarshaller.unmarshal(new StringReader(xml));
+      SAXParserFactory factory = SAXParserFactory.newInstance();
+      XMLReader reader = factory.newSAXParser().getXMLReader();
+      XMLFilterImpl xmlFilter = new XMLCacheTagInterceptor(reader);
+      reader.setContentHandler(unmarshaller.getUnmarshallerHandler());
+      SAXSource source = new SAXSource(xmlFilter, new InputSource(
+              new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))));
+
+      return (T) unmarshaller.unmarshal(source);
     } catch (Exception e) {
       throw new RuntimeException(e.getMessage(), e);
     }

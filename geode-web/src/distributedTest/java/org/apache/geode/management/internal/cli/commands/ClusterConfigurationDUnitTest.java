@@ -55,12 +55,11 @@ public class ClusterConfigurationDUnitTest {
   @Parameterized.Parameter
   public boolean connectOverHttp;
 
-  @Parameterized.Parameters
+  @Parameterized.Parameters (name="http connection = {0}")
   public static Collection<Boolean> data() {
     return Arrays.asList(true, false);
   }
 
-  // TODO mark GEODE-1606 resolved after
   @Test
   public void testStartServerAndExecuteCommands() throws Exception {
     MemberVM locator = startupRule.startLocatorVM(0, l -> l.withHttpService());

@@ -140,17 +140,35 @@ public class JAXBServiceTest {
   public void unmarshallIgnoresUnknownProperties() {
     // say xml has a type attribute that is removed in the new version
     String existingXML = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n"
-        + "<cache version=\"1.0\" xsi:schemaLocation=\"http://geode.apache.org/schema/cache "
-        + "http://geode.apache.org/schema/cache/cache-1.0.xsd\" "
-        + "xmlns=\"http://geode.apache.org/schema/cache\" "
-        + "xmlns:ns2=\"http://geode.apache.org/schema/CustomOne\" "
-        + "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n" + "    <ns2:custom-one>\n"
-        + "        <ns2:id>one</ns2:id>\n" + "        <ns2:type>onetype</ns2:type>\n"
-        + "        <ns2:value>onevalue</ns2:value>\n" + "    </ns2:custom-one>\n" + "</cache>";
+            + "<cache version=\"1.0\" xsi:schemaLocation=\"http://geode.apache.org/schema/cache "
+            + "http://geode.apache.org/schema/cache/cache-1.0.xsd\" "
+            + "xmlns=\"http://geode.apache.org/schema/cache\" "
+            + "xmlns:ns2=\"http://geode.apache.org/schema/CustomOne\" "
+            + "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n" + "    <ns2:custom-one>\n"
+            + "        <ns2:id>one</ns2:id>\n" + "        <ns2:type>onetype</ns2:type>\n"
+            + "        <ns2:value>onevalue</ns2:value>\n" + "    </ns2:custom-one>\n" + "</cache>";
 
     CacheConfig cacheConfig = service.unMarshall(existingXML);
     List elements = cacheConfig.getCustomCacheElements();
     assertThat(elements.get(0)).isInstanceOf(ElementOne.class);
+  }
+
+  @Test
+  public void unmarshall8_1() {
+    // say xml has a type attribute that is removed in the new version
+    String existingXML = "<cache xsi:schemaLocation=\"http://schema.pivotal.io/gemfire/cache http://schema.pivotal.io/gemfire/cache/cache-8.1.xsd\"\n" +
+            "       version=\"8.1\"\n" +
+            "       xmlns=\"http://schema.pivotal.io/gemfire/cache\"\n" +
+            "       xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n" +
+            "    <region name=\"one\">\n" +
+            "        <region-attributes scope=\"distributed-ack\" data-policy=\"replicate\"/>\n" +
+            "    </region>\n" +
+            "</cache>";
+
+    CacheConfig cacheConfig = service.unMarshall(existingXML);
+    System.out.println(service.marshall(cacheConfig));
+    assertThat(cacheConfig.getRegions()).hasSize(1);
+    assertThat(cacheConfig.getRegions().get(0).getName()).isEqualTo("one");
   }
 
   public static void setBasicValues(CacheConfig cache) {
