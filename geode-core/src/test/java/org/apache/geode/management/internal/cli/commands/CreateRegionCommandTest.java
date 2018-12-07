@@ -72,7 +72,7 @@ public class CreateRegionCommandTest {
 
   @Test
   public void testRegionExistsReturnsCorrectValue() throws Exception {
-    assertThat(command.regionExists(cache, null)).isFalse();
+    assertThat(command.regionExists(null)).isFalse();
   }
 
   @Test
@@ -138,8 +138,11 @@ public class CreateRegionCommandTest {
   @Test
   public void templateRegionAttributesNotAvailable() throws Exception {
     doReturn(null).when(command).getRegionAttributes(eq(cache), any());
+    DistributedSystemMXBean dsMBean = mock(DistributedSystemMXBean.class);
+    doReturn(dsMBean).when(command).getDSMBean();
+    doReturn(new String[] {}).when(dsMBean).listGatewaySenders();
     doReturn(Collections.emptySet()).when(command).findMembers(any(), any());
-    doReturn(true).when(command).regionExists(eq(cache), any());
+    doReturn(true).when(command).regionExists(any());
 
     CommandResult result = parser.executeCommandWithInstance(command,
         "create region --name=region --template-region=regionA");
@@ -155,6 +158,7 @@ public class CreateRegionCommandTest {
     when(resultCollector.getResult()).thenReturn(Collections.emptyList());
     DistributedSystemMXBean dsMBean = mock(DistributedSystemMXBean.class);
     doReturn(dsMBean).when(command).getDSMBean();
+    doReturn(new String[] {}).when(dsMBean).listGatewaySenders();
     doReturn(Collections.singleton(mock(DistributedMember.class))).when(command).findMembers(any(),
         any());
     doReturn(true).when(command).verifyDistributedRegionMbean(any(), any());

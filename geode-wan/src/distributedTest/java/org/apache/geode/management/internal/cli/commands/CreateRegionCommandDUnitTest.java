@@ -105,6 +105,28 @@ public class CreateRegionCommandDUnitTest {
     gfsh.executeAndAssertThat("list regions").statusIsSuccess().doesNotContainOutput(regionName);
   }
 
+  @Test
+  public void cannotCreateRegionIfGatewaySenderDoesNotExist() {
+    String regionName = testName.getMethodName();
+    String gatewaySenderName = "gatewaySender";
+    IgnoredException.addIgnoredException("could not get remote locator information");
+
+    gfsh.executeAndAssertThat(
+        "create gateway-sender --remote-distributed-system-id=2 --id="
+            + gatewaySenderName)
+        .statusIsSuccess();
+    locator.waitUntilGatewaySendersAreReadyOnExactlyThisManyServers(2);
+
+    gfsh.executeAndAssertThat("create region --type=REPLICATE  --name=" + regionName
+        + " --gateway-sender-id=" + gatewaySenderName + "-2")
+        .statusIsError()
+        .containsOutput("Specify valid gateway-sender-id");
+
+    // The exception must be thrown early in the initialization, so the region itself shouldn't be
+    // added to the root regions.
+    gfsh.executeAndAssertThat("list regions").statusIsSuccess().doesNotContainOutput(regionName);
+  }
+
   /**
    * Ignored this test until we refactor the FetchRegionAttributesFunction to not use
    * AttributesFactory, and instead use RegionConfig, which we will do as part of implementing

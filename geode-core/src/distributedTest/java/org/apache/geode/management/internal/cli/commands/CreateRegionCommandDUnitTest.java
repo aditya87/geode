@@ -250,6 +250,15 @@ public class CreateRegionCommandDUnitTest {
   }
 
   @Test
+  public void testCreateRegionFromTemplateFailsIfTemplateDoesNotExist() {
+    gfsh.executeAndAssertThat("create region --template-region=/TEMPLATE --name=/TEST"
+        + TestCacheListener.class.getName())
+        .statusIsError()
+        .containsOutput("Specify a valid region path for template-region")
+        .containsOutput("TEMPLATE not found");
+  }
+
+  @Test
   public void overrideListenerFromTemplate() throws Exception {
     gfsh.executeAndAssertThat("create region --name=/TEMPLATE --type=PARTITION_REDUNDANT"
         + " --cache-listener=" + TestCacheListener.class.getName()).statusIsSuccess();
@@ -609,6 +618,45 @@ public class CreateRegionCommandDUnitTest {
         + " --type=REPLICATE"
         + " --compressor=" + DummyCompressor.class.getName()
         + " --enable-cloning=false").statusIsError();
+  }
+
+  @Test
+  public void cannotColocateWithNonexistentRegion() {
+    String regionName = testName.getMethodName();
+    gfsh.executeAndAssertThat("create region"
+        + " --name=" + regionName
+        + " --type=PARTITION"
+        + " --colocated-with=/nonexistent").statusIsError()
+        .containsOutput("Specify a valid region path for colocated-with")
+        .containsOutput("nonexistent not found");
+  }
+
+  @Test
+  public void cannotColocateWithNonPartitionedRegion() {
+    gfsh.executeAndAssertThat("create region --type=REPLICATE --name=/nonpartitioned")
+        .statusIsSuccess();
+
+    String regionName = testName.getMethodName();
+    gfsh.executeAndAssertThat("create region"
+        + " --name=" + regionName
+        + " --type=PARTITION"
+        + " --colocated-with=/nonpartitioned").statusIsError()
+        .containsOutput("\"/nonpartitioned\" is not a Partitioned Region");
+  }
+
+  @Test
+  public void cannotCreateSubregionOnNonExistentParentRegion() {
+    gfsh.executeAndAssertThat("create region --type=REPLICATE --name=/nonexistentparent/child")
+        .statusIsError()
+        .containsOutput("Parent region for \"/nonexistentparent/child\" does not exist");
+  }
+
+  @Test
+  public void cannotCreateWithNonexistentGatewaySenders() {
+    gfsh.executeAndAssertThat(
+        "create region --type=REPLICATE --name=/invalid --gateway-sender-id=nonexistent")
+        .statusIsError()
+        .containsOutput("There are no GatewaySenders");
   }
 
   /**

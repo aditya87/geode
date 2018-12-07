@@ -951,7 +951,7 @@ public class CliStrings {
   public static final String CREATE_REGION__MSG__SPECIFY_VALID_REGION_PATH =
       "Specify a valid " + CliStrings.CREATE_REGION__REGION;
   public static final String CREATE_REGION__MSG__PARENT_REGION_FOR_0_DOES_NOT_EXIST =
-      "Parent region for \"{0}\" doesn't exist. ";
+      "Parent region for \"{0}\" does not exist. ";
   public static final String CREATE_REGION__MSG__GROUPS_0_ARE_INVALID =
       "Group(s) \"{0}\" are invalid.";
   public static final String CREATE_REGION__MSG__SPECIFY_VALID_REGION_PATH_FOR_USE_ATTR_FROM =
