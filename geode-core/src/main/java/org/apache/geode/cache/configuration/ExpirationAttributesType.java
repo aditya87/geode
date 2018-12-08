@@ -25,6 +25,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
 
 import org.apache.geode.annotations.Experimental;
+import org.apache.geode.cache.ExpirationAction;
 
 
 /**
@@ -86,6 +87,16 @@ public class ExpirationAttributesType {
   protected String action;
   @XmlAttribute(name = "timeout", required = true)
   protected String timeout;
+
+  public ExpirationAttributesType(ExpirationAction action, Integer timeout) {
+    this.action = action != null ? action.toXmlString() : "invalidate";
+    this.timeout = timeout != null ? timeout.toString() : "0";
+  }
+
+  public ExpirationAttributesType() {
+    this.action = "invalidate";
+    this.timeout = "0";
+  }
 
   /**
    * Gets the value of the customExpiry property.

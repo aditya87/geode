@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -61,6 +62,7 @@ import org.apache.geode.management.internal.cli.CliUtil;
 import org.apache.geode.management.internal.cli.GfshParseResult;
 import org.apache.geode.management.internal.cli.LogWrapper;
 import org.apache.geode.management.internal.cli.domain.ClassName;
+import org.apache.geode.management.internal.cli.domain.PartitionArgs;
 import org.apache.geode.management.internal.cli.domain.RegionConfigFactory;
 import org.apache.geode.management.internal.cli.exceptions.EntityExistsException;
 import org.apache.geode.management.internal.cli.functions.CliFunctionResult;
@@ -211,8 +213,8 @@ public class CreateRegionCommand extends SingleGfshCommand {
     }
 
     // validate if partition args are supplied only for partitioned regions
-    CommandPartitionArgs partitionArgs =
-        new CommandPartitionArgs(prColocatedWith, prLocalMaxMemory, prRecoveryDelay,
+    PartitionArgs partitionArgs =
+        new PartitionArgs(prColocatedWith, prLocalMaxMemory, prRecoveryDelay,
             prRedundantCopies, prStartupRecoveryDelay, prTotalMaxMemory, prTotalNumBuckets,
             partitionResolver);
     if (regionShortcut != null && !regionShortcut.name().startsWith("PARTITION")
@@ -235,8 +237,8 @@ public class CreateRegionCommand extends SingleGfshCommand {
             CliStrings.CREATE_REGION__COLOCATEDWITH, prColocatedWith));
       }
 
-      if (colocatedRegionBean.getRegionType() != "PARTITION" &&
-          colocatedRegionBean.getRegionType() != "PERSISTENT_PARTITION") {
+      if (!colocatedRegionBean.getRegionType().equals("PARTITION") &&
+          !colocatedRegionBean.getRegionType().equals("PERSISTENT_PARTITION")) {
         return ResultModel.createError(CliStrings.format(
             CliStrings.CREATE_REGION__MSG__COLOCATEDWITH_REGION_0_IS_NOT_PARTITIONEDREGION,
             new String[] {prColocatedWith}));
@@ -327,6 +329,75 @@ public class CreateRegionCommand extends SingleGfshCommand {
               (Object[]) groups));
     }
 
+    // generate the RegionConfig object for passing to distributed function and persisting
+    Set<ClassName<CacheListener>> cacheListeners = new HashSet<>();
+    if (cacheListener != null) {
+      Arrays.stream(cacheListener).forEach(c -> cacheListeners.add(c));
+    } else if (wrappedTemplateAttributes != null
+        && wrappedTemplateAttributes.getCacheListenerClasses() != null) {
+      cacheListeners.addAll(wrappedTemplateAttributes.getCacheListenerClasses());
+    }
+
+    ClassName<CacheLoader> cacheLoaderClassNameToPersist = null;
+    if (cacheLoader != null) {
+      cacheLoaderClassNameToPersist = cacheLoader;
+    } else if (wrappedTemplateAttributes != null
+        && wrappedTemplateAttributes.getCacheLoaderClass() != null) {
+      cacheLoaderClassNameToPersist = wrappedTemplateAttributes.getCacheLoaderClass();
+    }
+
+    ClassName<CacheWriter> cacheWriterClassNameToPersist = null;
+    if (cacheWriter != null) {
+      cacheWriterClassNameToPersist = cacheWriter;
+    } else if (wrappedTemplateAttributes != null
+        && wrappedTemplateAttributes.getCacheWriterClass() != null) {
+      cacheWriterClassNameToPersist = wrappedTemplateAttributes.getCacheWriterClass();
+    }
+
+    String compressorClassNameToPersist = null;
+    if (compressor != null) {
+      compressorClassNameToPersist = compressor;
+    } else if (wrappedTemplateAttributes != null
+        && wrappedTemplateAttributes.getCompressorClass() != null) {
+      compressorClassNameToPersist = wrappedTemplateAttributes.getCompressorClass();
+    }
+
+    String keyConstraintToPersist = null;
+    if (keyConstraint != null) {
+      keyConstraintToPersist = keyConstraint;
+    } else if (wrappedTemplateAttributes != null
+        && wrappedTemplateAttributes.getKeyConstraintClass() != null) {
+      keyConstraintToPersist = wrappedTemplateAttributes.getKeyConstraintClass();
+    }
+
+    String valueConstraintToPersist = null;
+    if (valueConstraint != null) {
+      valueConstraintToPersist = valueConstraint;
+    } else if (wrappedTemplateAttributes != null
+        && wrappedTemplateAttributes.getValueConstraintClass() != null) {
+      valueConstraintToPersist = wrappedTemplateAttributes.getValueConstraintClass();
+    }
+
+    Set<String> asyncEventQueueIdSet = Optional.ofNullable(asyncEventQueueIds)
+        .map(a -> Arrays.stream(a).collect(Collectors.toSet()))
+        .orElse(null);
+    Set<String> gatewaySenderIdSet = Optional.ofNullable(gatewaySenderIds)
+        .map(a -> Arrays.stream(a).collect(Collectors.toSet()))
+        .orElse(null);
+
+    RegionConfig config = (new RegionConfigFactory()).generate(regionPath, keyConstraintToPersist,
+        valueConstraintToPersist, statisticsEnabled, entryExpirationIdleTime,
+        entryExpirationIdleTimeAction, entryExpirationTTL, entryExpirationTTLAction,
+        entryIdleTimeCustomExpiry,
+        entryTTLCustomExpiry, regionExpirationIdleTime, regionExpirationIdleTimeAction,
+        regionExpirationTTL, regionExpirationTTLAction, evictionAction, evictionMaxMemory,
+        evictionEntryCount, evictionObjectSizer, diskStore, diskSynchronous, enableAsyncConflation,
+        enableSubscriptionConflation, cacheListeners, cacheLoaderClassNameToPersist,
+        cacheWriterClassNameToPersist,
+        asyncEventQueueIdSet, gatewaySenderIdSet, concurrencyChecksEnabled, cloningEnabled,
+        mcastEnabled,
+        concurrencyLevel, partitionArgs, compressorClassNameToPersist, offHeap, regionAttributes);
+
     // creating the RegionFunctionArgs
     RegionFunctionArgs functionArgs = new RegionFunctionArgs();
     functionArgs.setRegionShortcut(regionShortcut);
@@ -363,8 +434,8 @@ public class CreateRegionCommand extends SingleGfshCommand {
       // These attributes will have the actual callback fields (if previously present) nulled out.
       functionArgs.setCacheListeners(
           wrappedTemplateAttributes.getCacheListenerClasses().toArray(new ClassName[0]));
-      functionArgs.setCacheWriter(wrappedTemplateAttributes.getCacheWriterClass());
       functionArgs.setCacheLoader(wrappedTemplateAttributes.getCacheLoaderClass());
+      functionArgs.setCacheWriter(wrappedTemplateAttributes.getCacheWriterClass());
       functionArgs.setCompressor(wrappedTemplateAttributes.getCompressorClass());
       functionArgs.setKeyConstraint(wrappedTemplateAttributes.getKeyConstraintClass());
       functionArgs.setValueConstraint(wrappedTemplateAttributes.getValueConstraintClass());
@@ -400,15 +471,14 @@ public class CreateRegionCommand extends SingleGfshCommand {
     ResultModel resultModel = ResultModel.createMemberStatusResult(regionCreateResults);
     InternalConfigurationPersistenceService service =
         (InternalConfigurationPersistenceService) getConfigurationPersistenceService();
-
     if (service == null) {
       return resultModel;
     }
 
-    // otherwise, prepare the regionConfig for persistence
+    // persist the RegionConfig object if the function is successful on all members
     if (resultModel.isSuccessful()) {
       verifyDistributedRegionMbean(cache, regionPath);
-      RegionConfig config = (new RegionConfigFactory()).generate(functionArgs);
+
       // the following is a temporary solution before lucene make the change to create region first
       // before creating the lucene index.
       // GEODE-3924
@@ -427,72 +497,6 @@ public class CreateRegionCommand extends SingleGfshCommand {
     }
 
     return resultModel;
-  }
-
-  private class CommandPartitionArgs {
-    private String prColocatedWith;
-    private Integer prLocalMaxMemory;
-    private Long prRecoveryDelay;
-    private Integer prRedundantCopies;
-    private Long prStartupRecoveryDelay;
-    private Long prTotalMaxMemory;
-    private Integer prTotalNumBuckets;
-    private String partitionResolver;
-
-    CommandPartitionArgs(String prColocatedWith, Integer prLocalMaxMemory, Long prRecoveryDelay,
-        Integer prRedundantCopies, Long prStartupRecoveryDelay, Long prTotalMaxMemory,
-        Integer prTotalNumBuckets, String partitionResolver) {
-      this.prColocatedWith = prColocatedWith;
-      this.prLocalMaxMemory = prLocalMaxMemory;
-      this.prRecoveryDelay = prRecoveryDelay;
-      this.prRedundantCopies = prRedundantCopies;
-      this.prStartupRecoveryDelay = prStartupRecoveryDelay;
-      this.prTotalMaxMemory = prTotalMaxMemory;
-      this.prTotalNumBuckets = prTotalNumBuckets;
-      this.partitionResolver = partitionResolver;
-    }
-
-    boolean isEmpty() {
-      return prColocatedWith == null &&
-          prLocalMaxMemory == null &&
-          prRecoveryDelay == null &&
-          prRedundantCopies == null &&
-          prStartupRecoveryDelay == null &&
-          prTotalMaxMemory == null &&
-          prTotalNumBuckets == null &&
-          partitionResolver == null;
-    }
-
-    Set<String> getUserSpecifiedPartitionAttributes() {
-      Set<String> userSpecifiedPartitionAttributes = new HashSet<>();
-
-      if (this.prColocatedWith != null) {
-        userSpecifiedPartitionAttributes.add(CliStrings.CREATE_REGION__COLOCATEDWITH);
-      }
-      if (this.prLocalMaxMemory != null) {
-        userSpecifiedPartitionAttributes.add(CliStrings.CREATE_REGION__LOCALMAXMEMORY);
-      }
-      if (this.prRecoveryDelay != null) {
-        userSpecifiedPartitionAttributes.add(CliStrings.CREATE_REGION__RECOVERYDELAY);
-      }
-      if (this.prRedundantCopies != null) {
-        userSpecifiedPartitionAttributes.add(CliStrings.CREATE_REGION__REDUNDANTCOPIES);
-      }
-      if (this.prStartupRecoveryDelay != null) {
-        userSpecifiedPartitionAttributes.add(CliStrings.CREATE_REGION__STARTUPRECOVERYDDELAY);
-      }
-      if (this.prTotalMaxMemory != null) {
-        userSpecifiedPartitionAttributes.add(CliStrings.CREATE_REGION__TOTALMAXMEMORY);
-      }
-      if (this.prTotalNumBuckets != null) {
-        userSpecifiedPartitionAttributes.add(CliStrings.CREATE_REGION__TOTALNUMBUCKETS);
-      }
-      if (this.partitionResolver != null) {
-        userSpecifiedPartitionAttributes.add(CliStrings.CREATE_REGION__PARTITION_RESOLVER);
-      }
-
-      return userSpecifiedPartitionAttributes;
-    }
   }
 
   private class CreateRegionResultConfig {
