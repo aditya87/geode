@@ -32,7 +32,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import org.apache.geode.cache.RegionShortcut;
 import org.apache.geode.cache.execute.ResultCollector;
 import org.apache.geode.distributed.DistributedMember;
 import org.apache.geode.internal.cache.InternalCache;
@@ -42,8 +41,7 @@ import org.apache.geode.management.ManagementService;
 import org.apache.geode.management.cli.Result;
 import org.apache.geode.management.internal.cli.GfshParseResult;
 import org.apache.geode.management.internal.cli.domain.ClassName;
-import org.apache.geode.management.internal.cli.functions.RegionFunctionArgs;
-import org.apache.geode.management.internal.cli.functions.RegionFunctionArgs.ExpirationAttrs;
+import org.apache.geode.management.internal.cli.functions.CreateRegionFunctionArgs;
 import org.apache.geode.management.internal.cli.result.CommandResult;
 import org.apache.geode.test.junit.rules.GfshParserRule;
 
@@ -165,43 +163,12 @@ public class CreateRegionCommandTest {
     when(service.getDistributedRegionMXBean(any())).thenReturn(null);
 
     parser.executeCommandWithInstance(command, "create region --name=A --type=REPLICATE");
-    ArgumentCaptor<RegionFunctionArgs> argsCaptor =
-        ArgumentCaptor.forClass(RegionFunctionArgs.class);
+    ArgumentCaptor<CreateRegionFunctionArgs> argsCaptor =
+        ArgumentCaptor.forClass(CreateRegionFunctionArgs.class);
     verify(command).executeFunction(any(), argsCaptor.capture(), any(Set.class));
-    RegionFunctionArgs args = argsCaptor.getValue();
+    CreateRegionFunctionArgs args = argsCaptor.getValue();
 
-    assertThat(args.getRegionPath()).isEqualTo("/A");
-    assertThat(args.getRegionShortcut()).isEqualTo(RegionShortcut.REPLICATE);
-    assertThat(args.getTemplateRegion()).isNull();
-    assertThat(args.isIfNotExists()).isFalse();
-    assertThat(args.getKeyConstraint()).isNull();
-    assertThat(args.getValueConstraint()).isNull();
-    assertThat(args.getStatisticsEnabled()).isNull();
-
-    ExpirationAttrs empty = new ExpirationAttrs(null, null);
-    assertThat(args.getEntryExpirationIdleTime()).isNull();
-    assertThat(args.getEntryExpirationTTL()).isNull();
-    assertThat(args.getRegionExpirationIdleTime()).isNull();
-    assertThat(args.getRegionExpirationTTL()).isNull();
-
-    assertThat(args.getDiskStore()).isNull();
-    assertThat(args.getDiskSynchronous()).isNull();
-    assertThat(args.getEnableAsyncConflation()).isNull();
-    assertThat(args.getEnableSubscriptionConflation()).isNull();
-    assertThat(args.getCacheListeners()).isEmpty();
-    assertThat(args.getCacheLoader()).isNull();
-    assertThat(args.getCacheWriter()).isNull();
-    assertThat(args.getAsyncEventQueueIds()).isEmpty();
-    assertThat(args.getGatewaySenderIds()).isEmpty();
-    assertThat(args.getConcurrencyChecksEnabled()).isNull();
-    assertThat(args.getCloningEnabled()).isNull();
-    assertThat(args.getMcastEnabled()).isNull();
-    assertThat(args.getConcurrencyLevel()).isNull();
-    assertThat(args.getPartitionArgs()).isNull();
-    assertThat(args.getEvictionMax()).isNull();
-    assertThat(args.getCompressor()).isNull();
-    assertThat(args.getOffHeap()).isNull();
-    assertThat(args.getRegionAttributes()).isNull();
+    assertThat(args.getConfig().getRegionAttributes()).isNull();
   }
 
   @Test

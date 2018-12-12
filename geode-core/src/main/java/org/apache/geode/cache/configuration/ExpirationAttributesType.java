@@ -18,6 +18,8 @@
 
 package org.apache.geode.cache.configuration;
 
+import java.io.Serializable;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -79,7 +81,7 @@ import org.apache.geode.cache.ExpirationAction;
 @XmlType(name = "expiration-attributes-type", namespace = "http://geode.apache.org/schema/cache",
     propOrder = {"customExpiry"})
 @Experimental
-public class ExpirationAttributesType {
+public class ExpirationAttributesType implements Serializable {
 
   @XmlElement(name = "custom-expiry", namespace = "http://geode.apache.org/schema/cache")
   protected DeclarableType customExpiry;

@@ -66,10 +66,10 @@ import org.apache.geode.management.internal.cli.domain.PartitionArgs;
 import org.apache.geode.management.internal.cli.domain.RegionConfigFactory;
 import org.apache.geode.management.internal.cli.exceptions.EntityExistsException;
 import org.apache.geode.management.internal.cli.functions.CliFunctionResult;
+import org.apache.geode.management.internal.cli.functions.CreateRegionFunctionArgs;
 import org.apache.geode.management.internal.cli.functions.FetchRegionAttributesFunction;
 import org.apache.geode.management.internal.cli.functions.RegionAttributesWrapper;
 import org.apache.geode.management.internal.cli.functions.RegionCreateFunction;
-import org.apache.geode.management.internal.cli.functions.RegionFunctionArgs;
 import org.apache.geode.management.internal.cli.i18n.CliStrings;
 import org.apache.geode.management.internal.cli.result.ResultBuilder;
 import org.apache.geode.management.internal.cli.result.model.ResultModel;
@@ -399,71 +399,8 @@ public class CreateRegionCommand extends SingleGfshCommand {
         concurrencyLevel, partitionArgs, compressorClassNameToPersist, offHeap, regionAttributes);
 
     // creating the RegionFunctionArgs
-    RegionFunctionArgs functionArgs = new RegionFunctionArgs();
-    functionArgs.setRegionShortcut(regionShortcut);
-    functionArgs.setRegionAttributes(regionAttributes);
-    functionArgs.setTemplateRegion(templateRegion);
-    functionArgs.setRegionPath(regionPath);
-    functionArgs.setIfNotExists(ifNotExists);
-    functionArgs.setStatisticsEnabled(statisticsEnabled);
-    functionArgs.setEntryExpirationIdleTime(entryExpirationIdleTime, entryExpirationIdleTimeAction);
-    functionArgs.setEntryExpirationTTL(entryExpirationTTL, entryExpirationTTLAction);
-    functionArgs.setRegionExpirationIdleTime(regionExpirationIdleTime,
-        regionExpirationIdleTimeAction);
-    functionArgs.setRegionExpirationTTL(regionExpirationTTL, regionExpirationTTLAction);
-    functionArgs.setEntryIdleTimeCustomExpiry(entryIdleTimeCustomExpiry);
-    functionArgs.setEntryTTLCustomExpiry(entryTTLCustomExpiry);
-    functionArgs.setEvictionAttributes(evictionAction, evictionMaxMemory, evictionEntryCount,
-        evictionObjectSizer);
-    functionArgs.setDiskStore(diskStore);
-    functionArgs.setDiskSynchronous(diskSynchronous);
-    functionArgs.setEnableAsyncConflation(enableAsyncConflation);
-    functionArgs.setEnableSubscriptionConflation(enableSubscriptionConflation);
-    functionArgs.setAsyncEventQueueIds(asyncEventQueueIds);
-    functionArgs.setGatewaySenderIds(gatewaySenderIds);
-    functionArgs.setConcurrencyChecksEnabled(concurrencyChecksEnabled);
-    functionArgs.setCloningEnabled(cloningEnabled);
-    functionArgs.setConcurrencyLevel(concurrencyLevel);
-    functionArgs.setPartitionArgs(prColocatedWith, prLocalMaxMemory, prRecoveryDelay,
-        prRedundantCopies, prStartupRecoveryDelay, prTotalMaxMemory, prTotalNumBuckets,
-        partitionResolver);
-    functionArgs.setOffHeap(offHeap);
-    functionArgs.setMcastEnabled(mcastEnabled);
-
-    if (wrappedTemplateAttributes != null) {
-      // These attributes will have the actual callback fields (if previously present) nulled out.
-      functionArgs.setCacheListeners(
-          wrappedTemplateAttributes.getCacheListenerClasses().toArray(new ClassName[0]));
-      functionArgs.setCacheLoader(wrappedTemplateAttributes.getCacheLoaderClass());
-      functionArgs.setCacheWriter(wrappedTemplateAttributes.getCacheWriterClass());
-      functionArgs.setCompressor(wrappedTemplateAttributes.getCompressorClass());
-      functionArgs.setKeyConstraint(wrappedTemplateAttributes.getKeyConstraintClass());
-      functionArgs.setValueConstraint(wrappedTemplateAttributes.getValueConstraintClass());
-    }
-
-    if (cacheListener != null) {
-      functionArgs.setCacheListeners(cacheListener);
-    }
-
-    if (cacheLoader != null) {
-      functionArgs.setCacheLoader(cacheLoader);
-    }
-
-    if (cacheWriter != null) {
-      functionArgs.setCacheWriter(cacheWriter);
-    }
-
-    if (compressor != null) {
-      functionArgs.setCompressor(compressor);
-    }
-
-    if (keyConstraint != null) {
-      functionArgs.setKeyConstraint(keyConstraint);
-    }
-
-    if (valueConstraint != null) {
-      functionArgs.setValueConstraint(valueConstraint);
-    }
+    CreateRegionFunctionArgs functionArgs =
+        new CreateRegionFunctionArgs(regionPath, config, ifNotExists);
 
     List<CliFunctionResult> regionCreateResults = executeAndGetFunctionResult(
         RegionCreateFunction.INSTANCE, functionArgs, membersToCreateRegionOn);
@@ -472,6 +409,12 @@ public class CreateRegionCommand extends SingleGfshCommand {
     InternalConfigurationPersistenceService service =
         (InternalConfigurationPersistenceService) getConfigurationPersistenceService();
     if (service == null) {
+      return resultModel;
+    }
+
+    if (resultModel.isSuccessful() && regionCreateResults.stream()
+        .anyMatch(
+            res -> res.getStatusMessage() != null && res.getStatusMessage().contains("Skipping"))) {
       return resultModel;
     }
 
@@ -492,8 +435,7 @@ public class CreateRegionCommand extends SingleGfshCommand {
       List<CacheElement> extensions = regionConfigFromServer.getCustomRegionElements();
       config.getCustomRegionElements().addAll(extensions);
 
-      resultModel.setConfigObject(new CreateRegionResultConfig(config,
-          functionArgs.getRegionPath()));
+      resultModel.setConfigObject(new CreateRegionResultConfig(config, regionPath));
     }
 
     return resultModel;
@@ -630,8 +572,7 @@ public class CreateRegionCommand extends SingleGfshCommand {
   }
 
   private void checkIfRegionAlreadyExists(String regionPath, RegionShortcut regionShortcut,
-      boolean ifNotExists,
-      String[] groups) throws EntityExistsException {
+      boolean ifNotExists, String[] groups) throws EntityExistsException {
     /*
      * Adding name collision check for regions created with regionShortcut only.
      * Regions can be categories as Proxy(replicate/partition), replicate/partition, and local

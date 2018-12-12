@@ -307,7 +307,6 @@ public class CreateRegionCommandDUnitTest {
     gfsh.executeAndAssertThat("destroy region --name=/TEMPLATE").statusIsSuccess();
   }
 
-
   @Test
   public void ensureOverridingCallbacksFromTemplateDoNotRequireClassesOnLocator() throws Exception {
     final File prJarFile = new File(tmpDir.getRoot(), "myCacheListener.jar");
