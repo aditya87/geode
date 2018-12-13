@@ -129,7 +129,7 @@ public class CreateRegionCommandDUnitTest {
   /**
    * Ignored this test until we refactor the FetchRegionAttributesFunction to not use
    * AttributesFactory, and instead use RegionConfig, which we will do as part of implementing
-   * GEODE-6103
+   * GEODE-6104
    */
   @Ignore
   @Test

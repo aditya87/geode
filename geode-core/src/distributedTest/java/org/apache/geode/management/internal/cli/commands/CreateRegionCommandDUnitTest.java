@@ -238,7 +238,50 @@ public class CreateRegionCommandDUnitTest {
   @Test
   public void testCreateRegionWithInvalidPartitionResolver() throws Exception {
     gfsh.executeAndAssertThat("create region --name=" + testName.getMethodName()
-        + " --type=PARTITION --partition-resolver=InvalidPartitionResolver").statusIsError();
+        + " --type=PARTITION --partition-resolver=InvalidPartitionResolver")
+        .statusIsError()
+        .containsOutput("Could not find class");
+  }
+
+  @Test
+  public void testCreateRegionWithInvalidCustomExpiry() throws Exception {
+    gfsh.executeAndAssertThat("create region --name=" + testName.getMethodName()
+        + " --type=REPLICATE --entry-time-to-live-custom-expiry=InvalidCustomExpiry" +
+        " --enable-statistics=true")
+        .statusIsError()
+        .containsOutput("Could not find class");
+
+    gfsh.executeAndAssertThat("create region --name=" + testName.getMethodName()
+        + " --type=REPLICATE --entry-idle-time-custom-expiry=InvalidCustomExpiry" +
+        " --enable-statistics=true")
+        .statusIsError()
+        .containsOutput("Could not find class");
+  }
+
+  @Test
+  public void testCreateRegionWithInvalidCacheLoader() throws Exception {
+    gfsh.executeAndAssertThat("create region --name=" + testName.getMethodName()
+        + " --type=REPLICATE --cache-loader=InvalidCacheLoader")
+        .statusIsError()
+        .containsOutput("Could not find class");
+  }
+
+  @Test
+  public void testCreateRegionWithInvalidCacheWriter() throws Exception {
+    gfsh.executeAndAssertThat("create region --name=" + testName.getMethodName()
+        + " --type=REPLICATE --cache-writer=InvalidCacheWriter")
+        .statusIsError()
+        .containsOutput("Could not find class");
+  }
+
+  @Test
+  public void testCreateRegionWithInvalidCacheListeners() throws Exception {
+    gfsh.executeAndAssertThat("create region --name=" + testName.getMethodName()
+        + " --type=REPLICATE --cache-listener=" + TestCacheListener.class.getName()
+        + ",InvalidCacheListener")
+        .statusIsError()
+        .containsOutput("Could not find class")
+        .doesNotContainOutput("TestCacheListener");
   }
 
   @Test
@@ -661,7 +704,7 @@ public class CreateRegionCommandDUnitTest {
   /**
    * Ignored this test until we refactor the FetchRegionAttributesFunction to not use
    * AttributesFactory, and instead use RegionConfig, which we will do as part of implementing
-   * GEODE-6103
+   * GEODE-6104
    */
   @Ignore
   @Test
@@ -696,7 +739,7 @@ public class CreateRegionCommandDUnitTest {
   /**
    * Ignored this test until we refactor the FetchRegionAttributesFunction to not use
    * AttributesFactory, and instead use RegionConfig, which we will do as part of implementing
-   * GEODE-6103
+   * GEODE-6104
    */
   @Ignore
   @Test

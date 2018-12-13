@@ -199,7 +199,7 @@ public class CreateRegionCommand extends SingleGfshCommand {
           CliStrings.CREATE_REGION__MSG__ONE_OF_REGIONSHORTCUT_AND_USEATTRIBUTESFROM_IS_REQUIRED);
     }
 
-    // in certain cases, fail if region already exists
+    // in some cases, fail if region already exists
     checkIfRegionAlreadyExists(regionPath, regionShortcut, ifNotExists, groups);
 
     InternalCache cache = (InternalCache) getCache();
@@ -305,7 +305,7 @@ public class CreateRegionCommand extends SingleGfshCommand {
       return ResultModel.createError(message);
     }
 
-    if (diskStore != null && !diskStoreExists(cache, diskStore)) {
+    if (diskStore != null && !diskStoreExists(diskStore)) {
       return ResultModel.createError(CliStrings.format(
           CliStrings.CREATE_REGION__MSG__SPECIFY_VALID_DISKSTORE_UNKNOWN_DISKSTORE_0,
           new Object[] {diskStore}));
@@ -435,13 +435,13 @@ public class CreateRegionCommand extends SingleGfshCommand {
       List<CacheElement> extensions = regionConfigFromServer.getCustomRegionElements();
       config.getCustomRegionElements().addAll(extensions);
 
-      resultModel.setConfigObject(new CreateRegionResultConfig(config, regionPath));
+      resultModel.setConfigObject(new CreateRegionResult(config, regionPath));
     }
 
     return resultModel;
   }
 
-  private class CreateRegionResultConfig {
+  private class CreateRegionResult {
     RegionConfig getRegionConfig() {
       return regionConfig;
     }
@@ -453,7 +453,7 @@ public class CreateRegionCommand extends SingleGfshCommand {
     private final RegionConfig regionConfig;
     private final String fullRegionPath;
 
-    public CreateRegionResultConfig(RegionConfig regionConfig, String fullRegionPath) {
+    public CreateRegionResult(RegionConfig regionConfig, String fullRegionPath) {
       this.regionConfig = regionConfig;
       this.fullRegionPath = fullRegionPath;
     }
@@ -465,7 +465,7 @@ public class CreateRegionCommand extends SingleGfshCommand {
       return false;
     }
 
-    CreateRegionResultConfig regionResultConfigObject = (CreateRegionResultConfig) configObject;
+    CreateRegionResult regionResultConfigObject = (CreateRegionResult) configObject;
     RegionConfig regionConfig = regionResultConfigObject.getRegionConfig();
     String regionPath = regionResultConfigObject.getFullRegionPath();
 
@@ -664,7 +664,7 @@ public class CreateRegionCommand extends SingleGfshCommand {
     return Arrays.stream(allRegionPaths).anyMatch(regionPath::equals);
   }
 
-  private boolean diskStoreExists(InternalCache cache, String diskStoreName) {
+  private boolean diskStoreExists(String diskStoreName) {
     ManagementService managementService = getManagementService();
     DistributedSystemMXBean dsMXBean = managementService.getDistributedSystemMXBean();
     Map<String, String[]> diskstore = dsMXBean.listMemberDiskstore();

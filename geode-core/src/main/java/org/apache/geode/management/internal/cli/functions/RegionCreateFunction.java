@@ -150,6 +150,8 @@ public class RegionCreateFunction implements InternalFunction {
   private <K, V> Region<?, ?> createRegion(Cache cache, RegionConfig config, String regionPath)
       throws RuntimeException {
     RegionAttributesType regionAttributes = config.getRegionAttributes();
+    Region<K, V> createdRegion;
+    RegionFactory<K, V> factory = cache.createRegionFactory();
 
     // Perform classpath validations
     if (regionAttributes.getEntryIdleTime() != null
@@ -159,8 +161,8 @@ public class RegionCreateFunction implements InternalFunction {
           regionAttributes.getEntryIdleTime().getExpirationAttributes().getCustomExpiry()
               .getClassName();
       String neededFor = CliStrings.ENTRY_IDLE_TIME_CUSTOM_EXPIRY;
-      Class<CustomExpiry> customExpiryClass = InternalFunction.forName(customExpiry, neededFor);
-      InternalFunction.newInstance(customExpiryClass, neededFor);
+      Class<CustomExpiry> customExpiryClass = CliUtil.forName(customExpiry, neededFor);
+      CliUtil.newInstance(customExpiryClass, neededFor);
     }
 
     if (regionAttributes.getEntryTimeToLive() != null
@@ -170,8 +172,8 @@ public class RegionCreateFunction implements InternalFunction {
           regionAttributes.getEntryTimeToLive().getExpirationAttributes().getCustomExpiry()
               .getClassName();
       String neededFor = CliStrings.ENTRY_TTL_CUSTOM_EXPIRY;
-      Class<CustomExpiry> customExpiryClass = InternalFunction.forName(customExpiry, neededFor);
-      InternalFunction.newInstance(customExpiryClass, neededFor);
+      Class<CustomExpiry> customExpiryClass = CliUtil.forName(customExpiry, neededFor);
+      CliUtil.newInstance(customExpiryClass, neededFor);
     }
 
     if (regionAttributes.getPartitionAttributes() != null
@@ -180,16 +182,42 @@ public class RegionCreateFunction implements InternalFunction {
           regionAttributes.getPartitionAttributes().getPartitionResolver().getClassName();
       String neededFor = CliStrings.CREATE_REGION__PARTITION_RESOLVER;
       Class<PartitionResolver> partitionResolverClass =
-          InternalFunction.forName(partitionResolver, neededFor);
-      InternalFunction.newInstance(partitionResolverClass, neededFor);
+          CliUtil.forName(partitionResolver, neededFor);
+      CliUtil.newInstance(partitionResolverClass, neededFor);
     }
 
-    // TODO: Add validations for cache loader, cache writer and cache listeners
+    if (regionAttributes.getCacheLoader() != null) {
+      String cacheLoader =
+          regionAttributes.getCacheLoader().getClassName();
+      String neededFor = CliStrings.CREATE_REGION__CACHELOADER;
+      Class<CacheLoader> cacheLoaderClass =
+          CliUtil.forName(cacheLoader, neededFor);
+      CacheLoader loader = CliUtil.newInstance(cacheLoaderClass, neededFor);
+      factory.setCacheLoader(loader);
+    }
 
-    Region<K, V> createdRegion;
+    if (regionAttributes.getCacheWriter() != null) {
+      String cacheWriter =
+          regionAttributes.getCacheWriter().getClassName();
+      String neededFor = CliStrings.CREATE_REGION__CACHEWRITER;
+      Class<CacheWriter> cacheWriterClass =
+          CliUtil.forName(cacheWriter, neededFor);
+      CacheWriter writer = CliUtil.newInstance(cacheWriterClass, neededFor);
+      factory.setCacheWriter(writer);
+    }
 
-    // create the region factory using the arguments
-    RegionFactory<K, V> factory = cache.createRegionFactory();
+    if (regionAttributes.getCacheListeners() != null) {
+      List<DeclarableType> configListeners = regionAttributes.getCacheListeners();
+      CacheListener[] listeners = new CacheListener[configListeners.size()];
+      String neededFor = CliStrings.CREATE_REGION__CACHELISTENER;
+      for (int i = 0; i < configListeners.size(); i++) {
+        String listener = configListeners.get(i).getClassName();
+        Class<CacheListener> cacheListenerClass = CliUtil.forName(listener, neededFor);
+        listeners[i] = CliUtil.newInstance(cacheListenerClass, neededFor);
+      }
+
+      factory.initCacheListeners(listeners);
+    }
 
     if (regionAttributes.getPartitionAttributes() != null) {
       factory.setPartitionAttributes(
@@ -267,8 +295,13 @@ public class RegionCreateFunction implements InternalFunction {
     }
 
     if (regionAttributes.getEvictionAttributes() != null) {
-      factory.setEvictionAttributes(
-          EvictionAttributesImpl.fromConfig(regionAttributes.getEvictionAttributes()));
+      try {
+        factory.setEvictionAttributes(
+            EvictionAttributesImpl.fromConfig(regionAttributes.getEvictionAttributes()));
+      } catch (Exception e) {
+        throw new IllegalArgumentException(
+            CliStrings.CREATE_REGION__MSG__OBJECT_SIZER_MUST_BE_OBJECTSIZER_AND_DECLARABLE);
+      }
     }
 
     // Associate a Disk Store
@@ -344,24 +377,6 @@ public class RegionCreateFunction implements InternalFunction {
               CliStrings.CREATE_REGION__COMPRESSOR);
       factory.setCompressor(
           CliUtil.newInstance(compressorKlass, CliStrings.CREATE_REGION__COMPRESSOR));
-    }
-
-    if (regionAttributes.getCacheLoader() != null) {
-      try {
-        factory.setCacheLoader(
-            (CacheLoader) ClassPathLoader.getLatest().forName(regionAttributes.getCacheLoader()
-                .getClassName()).newInstance());
-      } catch (Exception e) {
-      }
-    }
-
-    if (regionAttributes.getCacheWriter() != null) {
-      try {
-        factory.setCacheWriter(
-            (CacheWriter) ClassPathLoader.getLatest().forName(regionAttributes.getCacheWriter()
-                .getClassName()).newInstance());
-      } catch (Exception e) {
-      }
     }
 
     // If a region path indicates a sub-region,

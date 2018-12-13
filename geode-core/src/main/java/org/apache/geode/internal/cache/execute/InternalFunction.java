@@ -18,9 +18,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.apache.geode.cache.execute.Function;
-import org.apache.geode.internal.ClassPathLoader;
 import org.apache.geode.internal.InternalEntity;
-import org.apache.geode.management.internal.cli.i18n.CliStrings;
 import org.apache.geode.management.internal.security.ResourcePermissions;
 import org.apache.geode.security.ResourcePermission;
 
@@ -37,33 +35,5 @@ public interface InternalFunction<T> extends Function<T>, InternalEntity {
    */
   default Collection<ResourcePermission> getRequiredPermissions(String regionName) {
     return Collections.singletonList(ResourcePermissions.ALL);
-  }
-
-  static <T> Class<T> forName(String className, String neededFor) {
-    try {
-      return (Class<T>) ClassPathLoader.getLatest().forName(className);
-    } catch (ClassNotFoundException e) {
-      throw new RuntimeException(CliStrings.format(
-          CliStrings.ERROR__MSG__COULD_NOT_FIND_CLASS_0_SPECIFIED_FOR_1,
-          className, neededFor), e);
-    } catch (ClassCastException e) {
-      throw new RuntimeException(CliStrings.format(
-          CliStrings.ERROR__MSG__CLASS_0_SPECIFIED_FOR_1_IS_NOT_OF_EXPECTED_TYPE,
-          className, neededFor), e);
-    }
-  }
-
-  static <T> T newInstance(Class<T> klass, String neededFor) {
-    try {
-      return klass.newInstance();
-    } catch (InstantiationException e) {
-      throw new RuntimeException(CliStrings.format(
-          CliStrings.ERROR__MSG__COULD_NOT_INSTANTIATE_CLASS_0_SPECIFIED_FOR_1,
-          klass, neededFor), e);
-    } catch (IllegalAccessException e) {
-      throw new RuntimeException(CliStrings.format(
-          CliStrings.ERROR__MSG__COULD_NOT_ACCESS_CLASS_0_SPECIFIED_FOR_1,
-          klass, neededFor), e);
-    }
   }
 }

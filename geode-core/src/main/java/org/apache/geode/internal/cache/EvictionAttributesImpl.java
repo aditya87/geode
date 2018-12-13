@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.Serializable;
 
 import org.apache.geode.DataSerializer;
+import org.apache.geode.cache.Declarable;
 import org.apache.geode.cache.EvictionAction;
 import org.apache.geode.cache.EvictionAlgorithm;
 import org.apache.geode.cache.EvictionAttributes;
@@ -163,7 +164,9 @@ public class EvictionAttributesImpl extends EvictionAttributes implements Serial
   }
 
   public static EvictionAttributesImpl fromConfig(
-      RegionAttributesType.EvictionAttributes configAttributes) {
+      RegionAttributesType.EvictionAttributes configAttributes)
+      throws ClassCastException, InstantiationException,
+      IllegalAccessException {
     EvictionAttributesImpl evictionAttributes = new EvictionAttributesImpl();
     if (configAttributes == null) {
       evictionAttributes.setAction(EvictionAction.NONE);
@@ -181,18 +184,24 @@ public class EvictionAttributesImpl extends EvictionAttributes implements Serial
       evictionAttributes.setAlgorithm(EvictionAlgorithm.NONE);
     }
 
-    try {
-      if (configAttributes.getLruHeapPercentage() != null) {
-        evictionAttributes.setObjectSizer((ObjectSizer) ClassPathLoader.getLatest()
-            .forName(configAttributes.getLruHeapPercentage()
-                .getClassName())
-            .newInstance());
-      } else if (configAttributes.getLruMemorySize() != null) {
-        evictionAttributes.setObjectSizer(
-            (ObjectSizer) ClassPathLoader.getLatest().forName(configAttributes.getLruMemorySize()
-                .getClassName()).newInstance());
+    String sizerClassName = null;
+    if (configAttributes.getLruHeapPercentage() != null) {
+      sizerClassName = configAttributes.getLruHeapPercentage().getClassName();
+    } else if (configAttributes.getLruMemorySize() != null) {
+      sizerClassName = configAttributes.getLruMemorySize().getClassName();
+    }
+
+    if (sizerClassName != null) {
+      ObjectSizer sizer;
+      try {
+        sizer = (ObjectSizer) ClassPathLoader.getLatest().forName(sizerClassName).newInstance();
+      } catch (ClassNotFoundException e) {
+        sizer = ObjectSizer.DEFAULT;
       }
-    } catch (Exception e) {
+      if (sizer != null && !(sizer instanceof Declarable)) {
+        throw new ClassCastException();
+      }
+      evictionAttributes.setObjectSizer(sizer);
     }
 
     if (configAttributes.getLruMemorySize() != null) {
