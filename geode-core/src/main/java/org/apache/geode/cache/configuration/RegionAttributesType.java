@@ -18,6 +18,9 @@
 
 package org.apache.geode.cache.configuration;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +31,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
 
+import org.apache.geode.DataSerializable;
+import org.apache.geode.DataSerializer;
 import org.apache.geode.annotations.Experimental;
 
 
@@ -335,6 +340,8 @@ import org.apache.geode.annotations.Experimental;
         "cacheWriter", "cacheListeners", "compressor", "evictionAttributes"})
 @Experimental
 public class RegionAttributesType implements Serializable {
+
+  private static final long serialVersionUID = -4715352511418448913L;
 
   @XmlElement(name = "key-constraint", namespace = "http://geode.apache.org/schema/cache")
   protected Object keyConstraint;
@@ -1849,6 +1856,8 @@ public class RegionAttributesType implements Serializable {
   @XmlType(name = "", propOrder = {"lruEntryCount", "lruHeapPercentage", "lruMemorySize"})
   public static class EvictionAttributes implements Serializable {
 
+    private static final long serialVersionUID = -3184907221542898444L;
+
     @XmlElement(name = "lru-entry-count", namespace = "http://geode.apache.org/schema/cache")
     protected RegionAttributesType.EvictionAttributes.LruEntryCount lruEntryCount;
     @XmlElement(name = "lru-heap-percentage", namespace = "http://geode.apache.org/schema/cache")
@@ -1957,7 +1966,8 @@ public class RegionAttributesType implements Serializable {
      */
     @XmlAccessorType(XmlAccessType.FIELD)
     @XmlType(name = "")
-    public static class LruEntryCount {
+    public static class LruEntryCount implements DataSerializable {
+      private static final long serialVersionUID = 2498237835928155500L;
 
       @XmlAttribute(name = "action")
       protected EnumActionDestroyOverflow action;
@@ -2008,6 +2018,17 @@ public class RegionAttributesType implements Serializable {
         this.maximum = value;
       }
 
+      @Override
+      public void toData(DataOutput out) throws IOException {
+        DataSerializer.writeObject(this.maximum, out);
+        DataSerializer.writeObject(this.action.value(), out);
+      }
+
+      @Override
+      public void fromData(DataInput in) throws IOException, ClassNotFoundException {
+        this.maximum = DataSerializer.readObject(in);
+        this.action = EnumActionDestroyOverflow.fromValue(DataSerializer.readObject(in));
+      }
     }
 
 
@@ -2035,7 +2056,7 @@ public class RegionAttributesType implements Serializable {
      *
      */
     @XmlAccessorType(XmlAccessType.FIELD)
-    public static class LruHeapPercentage extends DeclarableType {
+    public static class LruHeapPercentage extends DeclarableType implements DataSerializable {
       @XmlAttribute(name = "action")
       protected EnumActionDestroyOverflow action;
 
@@ -2061,6 +2082,15 @@ public class RegionAttributesType implements Serializable {
         this.action = value;
       }
 
+      @Override
+      public void toData(DataOutput out) throws IOException {
+        DataSerializer.writeString(this.action.value(), out);
+      }
+
+      @Override
+      public void fromData(DataInput in) throws IOException, ClassNotFoundException {
+        this.action = EnumActionDestroyOverflow.fromValue(DataSerializer.readString(in));
+      }
     }
 
 
@@ -2115,6 +2145,17 @@ public class RegionAttributesType implements Serializable {
         this.maximum = value;
       }
 
+      @Override
+      public void toData(DataOutput out) throws IOException {
+        DataSerializer.writeString(this.maximum, out);
+        DataSerializer.writeString(this.action.value(), out);
+      }
+
+      @Override
+      public void fromData(DataInput in) throws IOException, ClassNotFoundException {
+        this.maximum = DataSerializer.readString(in);
+        this.action = EnumActionDestroyOverflow.fromValue(DataSerializer.readString(in));
+      }
     }
 
   }

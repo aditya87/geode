@@ -66,6 +66,18 @@ org/apache/geode/cache/client/internal/locator/ServerLocationRequest,2
 fromData,9
 toData,9
 
+org/apache/geode/cache/configuration/RegionAttributesType$EvictionAttributes$LruEntryCount,2
+fromData,20
+toData,20
+
+org/apache/geode/cache/configuration/RegionAttributesType$EvictionAttributes$LruHeapPercentage,2
+fromData,12
+toData,12
+
+org/apache/geode/cache/configuration/RegionAttributesType$EvictionAttributes$LruMemorySize,2
+fromData,20
+toData,20
+
 org/apache/geode/cache/query/internal/CqEntry,2
 fromData,17
 toData,17

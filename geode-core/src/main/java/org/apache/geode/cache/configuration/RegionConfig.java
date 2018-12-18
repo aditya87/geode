@@ -150,6 +150,8 @@ import org.apache.geode.annotations.Experimental;
     propOrder = {"regionAttributes", "indexes", "entries", "regionElements", "regions"})
 @Experimental
 public class RegionConfig implements CacheElement {
+  private static final long serialVersionUID = 8332939510621006527L;
+
   @XmlElement(name = "region-attributes", namespace = "http://geode.apache.org/schema/cache")
   protected RegionAttributesType regionAttributes;
   @XmlElement(name = "index", namespace = "http://geode.apache.org/schema/cache")

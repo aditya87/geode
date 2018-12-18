@@ -19,6 +19,8 @@ import java.io.Serializable;
 import org.apache.geode.cache.configuration.RegionConfig;
 
 public class CreateRegionFunctionArgs implements Serializable {
+  private static final long serialVersionUID = 8103109952945727865L;
+
   private final String regionPath;
   private final RegionConfig config;
   private final boolean ifNotExists;
