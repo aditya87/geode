@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -1677,16 +1678,12 @@ public class RegionAttributesType implements Serializable {
         expirationAttributes.setAction(action.toXmlString());
       }
       if (expiry != null) {
-        expirationAttributes.setCustomExpiry(new DeclarableType(expiry, iniProps));
+        if (!expiry.isEmpty()) {
+          expirationAttributes.setCustomExpiry(new DeclarableType(expiry, iniProps));
+        } else {
+          expirationAttributes.setCustomExpiry(DeclarableType.EMPTY);
+        }
       }
-    }
-
-    public boolean hasTimoutOrAction() {
-      return (getTimeout() != null || getAction() != null);
-    }
-
-    public boolean hasCustomExpiry() {
-      return getCustomExpiry() != null;
     }
 
     public DeclarableType getCustomExpiry() {

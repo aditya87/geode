@@ -87,7 +87,7 @@ public class AlterRegionCommandDUnitTest {
   @After
   public void after() throws Exception {
     // make sure all tests started with no region defined
-    gfsh.executeAndAssertThat("destroy region --name=regionA --if-exists").statusIsSuccess();
+//    gfsh.executeAndAssertThat("destroy region --name=regionA --if-exists").statusIsSuccess();
   }
 
   @Test
@@ -112,8 +112,9 @@ public class AlterRegionCommandDUnitTest {
 
     // remove listener on server1
     gfsh.executeAndAssertThat("alter region --group=group1 --name=regionA --cache-listener=''")
-        .statusIsSuccess().tableHasRowCount("Member", 1).tableHasRowWithValues("Member", "Status",
-            "server-1", "Region \"/regionA\" altered on \"server-1\"");
+            .statusIsSuccess()
+            .tableHasRowCount("Member", 1)
+            .tableHasRowWithValues("Member", "Status", "server-1", "Region \"/regionA\" altered on \"server-1\"");
 
     server1.invoke(() -> {
       RegionAttributes attributes =
@@ -197,12 +198,12 @@ public class AlterRegionCommandDUnitTest {
     gfsh.executeAndAssertThat(
         "alter region --name=regionA --entry-idle-time-expiration-action=invalidate")
         .statusIsError()
-        .containsOutput("ERROR: Cannot set idle timeout when statistics are disabled.");
+        .containsOutput("Cannot set idle timeout when statistics are disabled.");
 
     gfsh.executeAndAssertThat(
         "alter region --name=regionA --entry-idle-time-custom-expiry=com.cadrdunit.RegionAlterCustomExpiry")
         .statusIsError()
-        .containsOutput("ERROR: Cannot set idle timeout when statistics are disabled.");
+        .containsOutput("Cannot set idle timeout when statistics are disabled.");
   }
 
   @Test

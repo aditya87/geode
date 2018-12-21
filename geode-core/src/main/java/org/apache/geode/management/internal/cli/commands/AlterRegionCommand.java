@@ -109,43 +109,44 @@ public class AlterRegionCommand extends SingleGfshCommand {
 
     RegionConfig deltaConfig = new RegionConfig();
     deltaConfig.setName(regionPath);
-    RegionAttributesType regionAttrbutes = new RegionAttributesType();
-    deltaConfig.setRegionAttributes(regionAttrbutes);
-    regionAttrbutes.setEntryIdleTime(getExpirationAttributes(entryExpirationIdleTime,
+    RegionAttributesType regionAttributesType = new RegionAttributesType();
+    deltaConfig.setRegionAttributes(regionAttributesType);
+    regionAttributesType.setEntryIdleTime(getExpirationAttributes(entryExpirationIdleTime,
         entryExpirationIdleTimeAction, entryIdleTimeCustomExpiry));
-    regionAttrbutes.setEntryTimeToLive(getExpirationAttributes(entryExpirationTTL,
+    regionAttributesType.setEntryTimeToLive(getExpirationAttributes(entryExpirationTTL,
         entryExpirationTTLAction, entryTTLCustomExpiry));
-    regionAttrbutes.setRegionIdleTime(
+    regionAttributesType.setRegionIdleTime(
         getExpirationAttributes(regionExpirationIdleTime, regionExpirationIdleTimeAction, null));
-    regionAttrbutes.setRegionTimeToLive(
+    regionAttributesType.setRegionTimeToLive(
         getExpirationAttributes(regionExpirationTTL, regionExpirationTTLAction, null));
     if (cacheLoader != null) {
-      regionAttrbutes.setCacheLoader(
+      regionAttributesType.setCacheLoader(
           new DeclarableType(cacheLoader.getClassName(), cacheLoader.getInitProperties()));
     }
 
     if (cacheWriter != null) {
-      regionAttrbutes.setCacheWriter(
+      regionAttributesType.setCacheWriter(
           new DeclarableType(cacheLoader.getClassName(), cacheLoader.getInitProperties()));
     }
 
     if (cacheListeners != null) {
-      regionAttrbutes.getCacheListeners().addAll(
+      regionAttributesType.getCacheListeners().addAll(
           Arrays.stream(cacheListeners)
-              .map(l -> new DeclarableType(l.getClassName(), l.getInitProperties()))
+              .map(l -> (l.getClassName() == null || l.getClassName().isEmpty()) ? DeclarableType.EMPTY :
+                      new DeclarableType(l.getClassName(), l.getInitProperties()))
               .collect(Collectors.toList()));
     }
 
     if (gatewaySenderIds != null) {
-      regionAttrbutes.setGatewaySenderIds(StringUtils.join(gatewaySenderIds, ","));
+      regionAttributesType.setGatewaySenderIds(StringUtils.join(gatewaySenderIds, ","));
     }
 
     if (asyncEventQueueIds != null) {
-      regionAttrbutes.setAsyncEventQueueIds(StringUtils.join(asyncEventQueueIds, ","));
+      regionAttributesType.setAsyncEventQueueIds(StringUtils.join(asyncEventQueueIds, ","));
     }
 
     if (cloningEnabled != null) {
-      regionAttrbutes.setCloningEnabled(cloningEnabled);
+      regionAttributesType.setCloningEnabled(cloningEnabled);
     }
 
     if (evictionMax != null && evictionMax < 0) {
@@ -161,7 +162,7 @@ public class AlterRegionCommand extends SingleGfshCommand {
           new EvictionAttributes.LruEntryCount();
       lruEntryCount.setMaximum(evictionMax.toString());
       evictionAttributes.setLruEntryCount(lruEntryCount);
-      regionAttrbutes.setEvictionAttributes(evictionAttributes);
+      regionAttributesType.setEvictionAttributes(evictionAttributes);
     }
 
 

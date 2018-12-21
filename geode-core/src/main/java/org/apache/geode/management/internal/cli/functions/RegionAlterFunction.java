@@ -14,10 +14,12 @@
  */
 package org.apache.geode.management.internal.cli.functions;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.geode.cache.Declarable;
 import org.apache.logging.log4j.Logger;
 
 import org.apache.geode.cache.AttributesMutator;
@@ -49,6 +51,7 @@ public class RegionAlterFunction extends CliFunction<RegionConfig> {
   private static final Logger logger = LogService.getLogger();
 
   private static final long serialVersionUID = -4846425364943216425L;
+  private static final String NULLSTR = "null";
 
   @Override
   public boolean isHA() {
@@ -92,15 +95,91 @@ public class RegionAlterFunction extends CliFunction<RegionConfig> {
     }
 
     // Alter expiration attributes
-    updateExpirationAttributes(cache, mutator, regionAttributes.getEntryIdleTime(),
-        region.getEntryIdleTimeout());
-    updateExpirationAttributes(cache, mutator, regionAttributes.getEntryTimeToLive(),
-        region.getEntryTimeToLive());
-    updateExpirationAttributes(cache, mutator, regionAttributes.getRegionIdleTime(),
-        region.getRegionIdleTimeout());
-    updateExpirationAttributes(cache, mutator, regionAttributes.getRegionTimeToLive(),
-        region.getRegionTimeToLive());
+    if (regionAttributes.getEntryIdleTime() != null) {
+      RegionAttributesType.ExpirationAttributesType newEntryIdleTime = regionAttributes.getEntryIdleTime();
+      ExpirationAttributes existingEntryIdleTime = region.getEntryIdleTimeout();
 
+      String timeout = newEntryIdleTime.getTimeout();
+      if (timeout != null && !timeout.equals(NULLSTR)) {
+        existingEntryIdleTime.setTimeout(Integer.parseInt(timeout));
+      }
+
+      String action = newEntryIdleTime.getAction();
+      if (action != null) {
+        existingEntryIdleTime.setAction(ExpirationAction.fromXmlString(action));
+      }
+
+      DeclarableType customExpiry = newEntryIdleTime.getCustomExpiry();
+      if (customExpiry != null) {
+        if (customExpiry.equals(DeclarableType.EMPTY)) {
+          mutator.setCustomEntryIdleTimeout(null);
+        } else {
+          mutator.setCustomEntryIdleTimeout(customExpiry.newInstance(cache));
+        }
+      }
+
+      mutator.setEntryIdleTimeout(existingEntryIdleTime);
+    }
+
+    if (regionAttributes.getEntryTimeToLive() != null) {
+      RegionAttributesType.ExpirationAttributesType newEntryTimeToLive = regionAttributes.getEntryTimeToLive();
+      ExpirationAttributes existingEntryTimeToLive = region.getEntryTimeToLive();
+
+      String timeout = newEntryTimeToLive.getTimeout();
+      if (timeout != null && !timeout.equals(NULLSTR)) {
+        existingEntryTimeToLive.setTimeout(Integer.parseInt(timeout));
+      }
+
+      String action = newEntryTimeToLive.getAction();
+      if (action != null) {
+        existingEntryTimeToLive.setAction(ExpirationAction.fromXmlString(action));
+      }
+
+      DeclarableType customExpiry = newEntryTimeToLive.getCustomExpiry();
+      if (customExpiry != null) {
+        if (customExpiry.equals(DeclarableType.EMPTY)) {
+          mutator.setCustomEntryTimeToLive(null);
+        } else {
+          mutator.setCustomEntryTimeToLive(customExpiry.newInstance(cache));
+        }
+      }
+
+      mutator.setEntryTimeToLive(existingEntryTimeToLive);
+    }
+
+    if (regionAttributes.getRegionIdleTime() != null) {
+      RegionAttributesType.ExpirationAttributesType newRegionIdleTime = regionAttributes.getRegionIdleTime();
+      ExpirationAttributes existingRegionIdleTime = region.getRegionIdleTimeout();
+
+      String timeout = newRegionIdleTime.getTimeout();
+      if (timeout != null && !timeout.equals(NULLSTR)) {
+        existingRegionIdleTime.setTimeout(Integer.parseInt(timeout));
+      }
+
+      String action = newRegionIdleTime.getAction();
+      if (action != null) {
+        existingRegionIdleTime.setAction(ExpirationAction.fromXmlString(action));
+      }
+
+      mutator.setRegionIdleTimeout(existingRegionIdleTime);
+    }
+
+    if (regionAttributes.getRegionTimeToLive() != null) {
+      RegionAttributesType.ExpirationAttributesType newRegionTimeToLive = regionAttributes.getRegionTimeToLive();
+      ExpirationAttributes existingRegionTimeToLive = region.getRegionTimeToLive();
+
+      String timeout = newRegionTimeToLive.getTimeout();
+      if (timeout != null && !timeout.equals(NULLSTR)) {
+        existingRegionTimeToLive.setTimeout(Integer.parseInt(timeout));
+      }
+
+      String action = newRegionTimeToLive.getAction();
+      if (action != null) {
+        existingRegionTimeToLive.setAction(ExpirationAction.fromXmlString(action));
+      }
+
+      mutator.setRegionTimeToLive(existingRegionTimeToLive);
+    }
 
     final Set<String> newGatewaySenderIds = regionAttributes.getGatewaySenderIdsAsSet();
     final Set<String> newAsyncEventQueueIds = regionAttributes.getAsyncEventQueueIdsAsSet();
@@ -185,8 +264,10 @@ public class RegionAlterFunction extends CliFunction<RegionConfig> {
 
       // Add new cache listeners
       for (DeclarableType newCacheListener : newCacheListeners) {
-        if (!newCacheListener.equals(ClassName.EMPTY)) {
+        if (!newCacheListener.equals(DeclarableType.EMPTY)) {
           mutator.addCacheListener(newCacheListener.newInstance(cache));
+        } else {
+          Arrays.stream(region.getCacheListeners()).forEach(l -> mutator.removeCacheListener(l));
         }
       }
       if (logger.isDebugEnabled()) {
@@ -220,39 +301,6 @@ public class RegionAlterFunction extends CliFunction<RegionConfig> {
       }
     }
   }
-
-  private void updateExpirationAttributes(Cache cache, AttributesMutator mutator,
-      RegionAttributesType.ExpirationAttributesType newAttributes,
-      ExpirationAttributes existingAttributes) {
-    if (newAttributes != null) {
-      if (newAttributes.hasTimoutOrAction()) {
-
-        if (newAttributes.getTimeout() != null) {
-          existingAttributes.setTimeout(Integer.parseInt(newAttributes.getTimeout()));
-        }
-
-        if (newAttributes.getAction() != null) {
-          existingAttributes.setAction(ExpirationAction.fromXmlString(newAttributes.getAction()));
-        }
-        mutator.setEntryTimeToLive(existingAttributes);
-      }
-
-
-      if (newAttributes.hasCustomExpiry()) {
-        DeclarableType newCustomExpiry = newAttributes.getCustomExpiry();
-        if (newCustomExpiry.equals(DeclarableType.EMPTY)) {
-          mutator.setCustomEntryTimeToLive(null);
-        } else {
-          mutator.setCustomEntryTimeToLive(newCustomExpiry.newInstance(cache));
-        }
-      }
-
-      if (logger.isDebugEnabled()) {
-        logger.debug("Region successfully altered - entry idle timeout");
-      }
-    }
-  }
-
 
   private void validateParallelGatewaySenderIDs(PartitionedRegion region,
       Set<String> newGatewaySenderIds) {
