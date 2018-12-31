@@ -19,6 +19,7 @@ apply plugin: 'antlr'
 apply plugin: 'me.champeau.gradle.jmh'
 apply from: "${project.projectDir}/../gradle/geode-dependency-management.gradle"
 apply from: "${project.projectDir}/../gradle/publish.gradle"
+apply plugin: "kotlin"
 
 sourceSets {
   jca {
@@ -130,6 +131,7 @@ task webJar(type: Jar, dependsOn: classes) {
   from sourceSets.main.output
   baseName 'geode-web'
   include 'org/apache/geode/management/internal/web/**'
+  include 'org/apache/geode/cache/rest/**'
 }
 
 task raJar(type: Jar, dependsOn: classes) {
@@ -161,6 +163,7 @@ dependencies {
   // Source Dependencies
   antlr 'antlr:antlr'
 
+  compile("org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version") // Required for Kotlin integration)
   // External
   compileOnly files("${System.getProperty('java.home')}/../lib/tools.jar")
   compile('com.github.stephenc.findbugs:findbugs-annotations')
