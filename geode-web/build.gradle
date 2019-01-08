@@ -24,6 +24,7 @@ apply from: "${project.projectDir}/../gradle/publish.gradle"
 dependencies {
   compileOnly('javax.servlet:javax.servlet-api')
   compileOnly(project(path: ':geode-core', configuration: 'classesOutput'))
+  compileOnly(project(path: ':geode-rest', configuration: 'classesOutput'))
 
   runtimeOnly('org.springframework:spring-aspects') {
     exclude module: 'aspectjweaver'
@@ -45,13 +46,17 @@ dependencies {
   }
   
   testCompile(project(':geode-core'))
+  testCompile(project(':geode-rest'))
   testCompile(project(':geode-junit')) {
     exclude module: 'geode-core'
+    exclude module: 'geode-rest'
   }
   // have to use output since we exclude the dependent classes from jar :(
   testCompile(project(path: ':geode-core', configuration: 'classesOutput'))
+  testCompile(project(path: ':geode-rest', configuration: 'classesOutput'))
   testCompile(project(':geode-junit')) {
     exclude module: 'geode-core'
+    exclude module: 'geode-rest'
   }
   testCompile('org.springframework:spring-test')
   testCompile('org.springframework:spring-webmvc') {
@@ -59,9 +64,9 @@ dependencies {
     exclude module: 'spring-aop'
   }
 
-
   integrationTestCompile(project(':geode-dunit')) {
     exclude module: 'geode-core'
+    exclude module: 'geode-rest'
   }
 
   integrationTestRuntime(files(war.destinationDir))
@@ -70,9 +75,9 @@ dependencies {
     exclude module: 'spring-aop'
   }
 
-
   distributedTestCompile(project(':geode-dunit')){
     exclude module: 'geode-core'
+    exclude module: 'geode-rest'
   }
   distributedTestCompile('pl.pragmatists:JUnitParams')
 
@@ -84,6 +89,7 @@ dependencies {
 
   upgradeTestCompile(project(':geode-dunit')) {
     exclude module: 'geode-core'
+    exclude module: 'geode-rest'
   }
 }
 
@@ -93,7 +99,8 @@ dependencies {
 //geode-core project
 eclipse.classpath.file {
   whenMerged { classpath ->
-    classpath.entries.removeAll { entry -> entry.path.contains('geode-core/build') }
+    classpath.entries.removeAll { entry -> entry.path.contains('geode-core/build') ||
+            entry.path.contains('geode-rest/build') }
   }
 }
 
@@ -101,8 +108,9 @@ distributedTest.dependsOn(war)
 integrationTest.dependsOn(war)
 
 war {
-  dependsOn ':geode-core:webJar'
+  dependsOn ':geode-core:webJar', ':geode-rest:webJar'
   duplicatesStrategy = DuplicatesStrategy.EXCLUDE
   classpath configurations.runtimeClasspath
   classpath project(':geode-core').webJar.archivePath
+  classpath project(':geode-rest').webJar.archivePath
 }

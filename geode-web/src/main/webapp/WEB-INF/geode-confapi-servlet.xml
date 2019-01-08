@@ -23,7 +23,7 @@ limitations under the License.
         http://www.springframework.org/schema/context
         http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd">
 
-  <context:component-scan base-package="org.apache.geode.cache.rest"/>
+  <context:component-scan base-package="org.apache.geode.cache.rest.mgmt"/>
 
   <bean id="asyncTaskExecutor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
     <property name="corePoolSize" value="5"/>

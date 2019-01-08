@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.geode.cache.rest.controllers
+package org.apache.geode.cache.rest.mgmt.controllers
 
 import org.apache.geode.cache.configuration.RegionAttributesDataPolicy
 import org.apache.geode.cache.configuration.RegionAttributesType

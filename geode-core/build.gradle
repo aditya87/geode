@@ -131,7 +131,6 @@ task webJar(type: Jar, dependsOn: classes) {
   from sourceSets.main.output
   baseName 'geode-web'
   include 'org/apache/geode/management/internal/web/**'
-  include 'org/apache/geode/cache/rest/**'
 }
 
 task raJar(type: Jar, dependsOn: classes) {

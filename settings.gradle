@@ -28,6 +28,7 @@ include 'geode-json'
 include 'geode-junit'
 include 'geode-dunit'
 include 'geode-core'
+include 'geode-rest'
 include 'geode-web'
 include 'geode-web-api'
 include 'geode-pulse'
@@ -60,11 +61,11 @@ include 'boms:geode-all-bom'
 
 
 if (GradleVersion.current() < GradleVersion.version(minimumGradleVersion)) {
-  throw new GradleException('Running with unsupported Gradle Version. Use Gradle Wrapper or with Gradle version >= ' + minimumGradleVersion)
+    throw new GradleException('Running with unsupported Gradle Version. Use Gradle Wrapper or with Gradle version >= ' + minimumGradleVersion)
 }
 
 buildCache {
-  local {
-    enabled = true
-  }
+    local {
+        enabled = true
+    }
 }
