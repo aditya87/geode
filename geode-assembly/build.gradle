@@ -317,6 +317,7 @@ task gfshDepsJar (type: Jar, dependsOn: ':geode-core:classes') {
     manifest {
       attributes("Class-Path": cp() +
         ' ' + project(':geode-core').webJar.archiveName +
+        ' ' + project(':geode-rest').webJar.archiveName +
         ' ' + configurations.gfshDependencies.collect{ it.getName() }.flatten().join(' ')
       )
     }

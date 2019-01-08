@@ -43,6 +43,6 @@ compileTestKotlin {
 task webJar(type: Jar, dependsOn: classes) {
     description 'Assembles the jar archive containing the gemfire management web classes.'
     from sourceSets.main.output
-    baseName 'geode-web'
+    baseName 'geode-web-rest'
     include 'org/apache/geode/rest/mgmt/**'
 }
