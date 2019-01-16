@@ -25,9 +25,8 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 
-import org.apache.geode.cache.Cache;
-import org.apache.geode.cache.Declarable;
-import org.apache.geode.internal.ClassPathLoader;
+import org.apache.geode.cache.configuration.ConfigTypeInstantiator;
+
 
 /**
  * This is mostly used for Gfsh command options that need to specify a className for instantiation.
@@ -59,7 +58,6 @@ public class ClassName<T> implements Serializable {
   }
 
   /**
-   *
    * @param className this class needs to have an empty param constructor
    * @param jsonInitProperties this class needs to implement Declarable in order for these
    *        properties to be applied at initialization time
@@ -116,18 +114,8 @@ public class ClassName<T> implements Serializable {
         && this.getInitProperties().equals(that.getInitProperties());
   }
 
-  public T newInstance(Cache cache) {
-    try {
-      Class<T> loadedClass = (Class<T>) ClassPathLoader.getLatest().forName(className);
-      T object = loadedClass.newInstance();
-      if (object instanceof Declarable) {
-        Declarable declarable = (Declarable) object;
-        declarable.initialize(cache, initProperties);
-        declarable.init(initProperties); // for backwards compatibility
-      }
-      return object;
-    } catch (Exception e) {
-      throw new RuntimeException("Error instantiating class: <" + className + ">", e);
-    }
+  public T newInstance(ConfigTypeInstantiator<ClassName<?>> instantiator) {
+    return (T) instantiator.newInstance(this);
   }
+
 }

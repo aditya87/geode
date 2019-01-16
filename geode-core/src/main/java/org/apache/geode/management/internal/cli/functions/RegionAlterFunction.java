@@ -38,6 +38,7 @@ import org.apache.geode.internal.cache.partitioned.PRLocallyDestroyedException;
 import org.apache.geode.internal.logging.LogService;
 import org.apache.geode.management.cli.CliFunction;
 import org.apache.geode.management.cli.Result;
+import org.apache.geode.management.internal.configuration.domain.DeclarableTypeInstantiator;
 
 /**
  * Function used by the 'alter region' gfsh command to alter a region on each member.
@@ -188,7 +189,8 @@ public class RegionAlterFunction extends CliFunction<RegionConfig> {
       // Add new cache listeners
       for (DeclarableType newCacheListener : newCacheListeners) {
         if (!newCacheListener.equals(DeclarableType.EMPTY)) {
-          mutator.addCacheListener(newCacheListener.newInstance(cache));
+          mutator.addCacheListener(
+              newCacheListener.newInstance(new DeclarableTypeInstantiator(cache)));
         }
       }
       if (logger.isDebugEnabled()) {
@@ -201,7 +203,7 @@ public class RegionAlterFunction extends CliFunction<RegionConfig> {
       if (cacheLoader.equals(DeclarableType.EMPTY)) {
         mutator.setCacheLoader(null);
       } else {
-        mutator.setCacheLoader(cacheLoader.newInstance(cache));
+        mutator.setCacheLoader(cacheLoader.newInstance(new DeclarableTypeInstantiator(cache)));
       }
 
       if (logger.isDebugEnabled()) {
@@ -214,7 +216,7 @@ public class RegionAlterFunction extends CliFunction<RegionConfig> {
       if (cacheWriter.equals(DeclarableType.EMPTY)) {
         mutator.setCacheWriter(null);
       } else {
-        mutator.setCacheWriter(cacheWriter.newInstance(cache));
+        mutator.setCacheWriter(cacheWriter.newInstance(new DeclarableTypeInstantiator(cache)));
       }
 
       if (logger.isDebugEnabled()) {
@@ -254,7 +256,7 @@ public class RegionAlterFunction extends CliFunction<RegionConfig> {
       if (newCustomExpiry.equals(DeclarableType.EMPTY)) {
         mutator2.accept(null);
       } else {
-        mutator2.accept(newCustomExpiry.newInstance(cache));
+        mutator2.accept(newCustomExpiry.newInstance(new DeclarableTypeInstantiator(cache)));
       }
     }
 

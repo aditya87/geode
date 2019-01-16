@@ -23,7 +23,6 @@ import java.util.Properties;
 import org.junit.Test;
 
 
-
 public class ClassNameTest {
 
   @Test
@@ -44,7 +43,8 @@ public class ClassNameTest {
 
   @Test
   public void emptyCanNotInstantiate() {
-    assertThatThrownBy(() -> ClassName.EMPTY.newInstance(null)).isInstanceOf(RuntimeException.class)
+    assertThatThrownBy(() -> ClassName.EMPTY.newInstance(new ClassNameInstantiator(null)))
+        .isInstanceOf(RuntimeException.class)
         .hasMessageContaining("Error instantiating class");
   }
 
@@ -100,7 +100,7 @@ public class ClassNameTest {
   @Test
   public void getInstance() {
     ClassName<String> klass = new ClassName("java.lang.String");
-    String s = klass.newInstance(null);
+    String s = klass.newInstance(new ClassNameInstantiator(null));
     assertThat(s.toString()).isEqualTo("");
   }
 
@@ -108,7 +108,7 @@ public class ClassNameTest {
   public void getInstanceWithProps() {
     String json = "{\"k\":\"v\"}";
     ClassName<MyCacheWriter> cacheWriter = new ClassName<>(MyCacheWriter.class.getName(), json);
-    MyCacheWriter obj = cacheWriter.newInstance(null);
+    MyCacheWriter obj = cacheWriter.newInstance(new ClassNameInstantiator(null));
     assertThat(obj.getProperties()).containsEntry("k", "v").containsOnlyKeys("k");
   }
 }
