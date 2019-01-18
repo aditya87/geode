@@ -189,8 +189,7 @@ public class RegionAlterFunction extends CliFunction<RegionConfig> {
       // Add new cache listeners
       for (DeclarableType newCacheListener : newCacheListeners) {
         if (!newCacheListener.equals(DeclarableType.EMPTY)) {
-          mutator.addCacheListener(
-              newCacheListener.newInstance(new DeclarableTypeInstantiator(cache)));
+          mutator.addCacheListener(DeclarableTypeInstantiator.newInstance(newCacheListener, cache));
         }
       }
       if (logger.isDebugEnabled()) {
@@ -203,7 +202,7 @@ public class RegionAlterFunction extends CliFunction<RegionConfig> {
       if (cacheLoader.equals(DeclarableType.EMPTY)) {
         mutator.setCacheLoader(null);
       } else {
-        mutator.setCacheLoader(cacheLoader.newInstance(new DeclarableTypeInstantiator(cache)));
+        mutator.setCacheLoader(DeclarableTypeInstantiator.newInstance(cacheLoader, cache));
       }
 
       if (logger.isDebugEnabled()) {
@@ -216,7 +215,7 @@ public class RegionAlterFunction extends CliFunction<RegionConfig> {
       if (cacheWriter.equals(DeclarableType.EMPTY)) {
         mutator.setCacheWriter(null);
       } else {
-        mutator.setCacheWriter(cacheWriter.newInstance(new DeclarableTypeInstantiator(cache)));
+        mutator.setCacheWriter(DeclarableTypeInstantiator.newInstance(cacheWriter, cache));
       }
 
       if (logger.isDebugEnabled()) {
@@ -256,7 +255,7 @@ public class RegionAlterFunction extends CliFunction<RegionConfig> {
       if (newCustomExpiry.equals(DeclarableType.EMPTY)) {
         mutator2.accept(null);
       } else {
-        mutator2.accept(newCustomExpiry.newInstance(new DeclarableTypeInstantiator(cache)));
+        mutator2.accept(DeclarableTypeInstantiator.newInstance(newCustomExpiry, cache));
       }
     }
 

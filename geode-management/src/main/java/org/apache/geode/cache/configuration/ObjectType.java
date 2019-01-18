@@ -46,7 +46,6 @@ import javax.xml.bind.annotation.XmlType;
  * </pre>
  *
  * ObjectType represents either a string or an object represented by the DeclarableType
- *
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "", propOrder = {"string", "declarable"})
@@ -68,7 +67,6 @@ public class ObjectType implements Serializable {
 
   /**
    * Gets the value of the string property.
-   *
    */
   public String getString() {
     return string;
@@ -76,7 +74,6 @@ public class ObjectType implements Serializable {
 
   /**
    * Sets the value of the string property.
-   *
    */
   public void setString(String string) {
     this.string = string;
@@ -85,9 +82,7 @@ public class ObjectType implements Serializable {
   /**
    * Gets the value of the declarable property.
    *
-   * possible object is
-   * {@link DeclarableType }
-   *
+   * possible object is {@link DeclarableType }
    */
   public DeclarableType getDeclarable() {
     return declarable;
@@ -96,9 +91,7 @@ public class ObjectType implements Serializable {
   /**
    * Sets the value of the declarable property.
    *
-   * allowed object is
-   * {@link DeclarableType }
-   *
+   * allowed object is {@link DeclarableType }
    */
   public void setDeclarable(DeclarableType value) {
     this.declarable = value;
@@ -133,15 +126,4 @@ public class ObjectType implements Serializable {
     return "";
   }
 
-  public Object newInstance(ConfigTypeInstantiator<DeclarableType> instantiator) {
-    if (getString() != null) {
-      return getString();
-    }
-
-    if (getDeclarable() != null) {
-      return getDeclarable().newInstance(instantiator);
-    }
-
-    return null;
-  }
 }

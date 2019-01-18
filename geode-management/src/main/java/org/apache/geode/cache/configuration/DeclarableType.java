@@ -145,7 +145,4 @@ public class DeclarableType extends ClassNameType implements Serializable {
         + parameters.stream().map(Objects::toString).collect(Collectors.joining(",")) + "}";
   }
 
-  public <V> V newInstance(ConfigTypeInstantiator<DeclarableType> instantiator) {
-    return (V) instantiator.newInstance(this);
-  }
 }

@@ -91,7 +91,7 @@ public class TomcatInstall extends ContainerInstall {
 
   private static final String[] tomcatRequiredJars =
       {"antlr", "commons-io", "commons-lang", "commons-validator", "fastutil", "geode-common",
-          "geode-core", "geode-management-api", "javax.transaction-api", "jgroups", "log4j-api",
+          "geode-core", "geode-management", "javax.transaction-api", "jgroups", "log4j-api",
           "log4j-core", "log4j-jul", "shiro-core"};
 
   private final TomcatVersion version;

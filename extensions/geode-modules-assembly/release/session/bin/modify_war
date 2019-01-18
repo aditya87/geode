@@ -89,7 +89,7 @@ WHERE <args>:
                         geode-core.jar
                         geode-json.jar
                         geode-common.jar
-                        geode-management-api.jar
+                        geode-management.jar
                         antlr.jar
                         log4j-core.jar
                         log4j-api.jar
@@ -264,7 +264,7 @@ declare -a OTHER_JARS
 OTHER_JARS=(${GEODE}/lib/geode-core-${VERSION}.jar \
     ${GEODE}/lib/geode-json-${VERSION}.jar \
     ${GEODE}/lib/geode-common-${VERSION}.jar \
-    ${GEODE}/lib/geode-management-api-${VERSION}.jar \
+    ${GEODE}/lib/geode-management-${VERSION}.jar \
     ${GEODE}/lib/antlr-@ANTLR_VERSION@.jar \
     ${GEODE}/lib/log4j-core-@LOG4J_VERSION@.jar \
     ${GEODE}/lib/log4j-api-@LOG4J_VERSION@.jar \

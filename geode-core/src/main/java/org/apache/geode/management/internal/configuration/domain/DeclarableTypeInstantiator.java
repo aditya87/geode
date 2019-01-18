@@ -18,38 +18,55 @@ import java.util.Properties;
 
 import org.apache.geode.cache.Cache;
 import org.apache.geode.cache.Declarable;
-import org.apache.geode.cache.configuration.ConfigTypeInstantiator;
 import org.apache.geode.cache.configuration.DeclarableType;
+import org.apache.geode.cache.configuration.ObjectType;
 import org.apache.geode.cache.configuration.ParameterType;
 import org.apache.geode.internal.ClassPathLoader;
+import org.apache.geode.management.internal.cli.domain.ClassName;
 
-public class DeclarableTypeInstantiator implements ConfigTypeInstantiator<DeclarableType> {
+public abstract class DeclarableTypeInstantiator {
 
-  private final Cache cache;
-
-  public DeclarableTypeInstantiator(Cache cache) {
-    this.cache = cache;
-  }
-
-  @Override
-  public <T> T newInstance(DeclarableType declarableType) {
+  public static <T extends Declarable> T newInstance(DeclarableType declarableType, Cache cache) {
     try {
       Class<T> loadedClass =
           (Class<T>) ClassPathLoader.getLatest().forName(declarableType.getClassName());
-      T object = loadedClass.newInstance();
-      if (object instanceof Declarable) {
-        Declarable declarable = (Declarable) object;
-        Properties initProperties = new Properties();
-        for (ParameterType parameter : declarableType.getParameters()) {
-          initProperties.put(parameter.getName(),
-              parameter.newInstance(new DeclarableTypeInstantiator(cache)));
-        }
-        declarable.initialize(cache, initProperties);
+      T declarable = loadedClass.newInstance();
+      Properties initProperties = new Properties();
+      for (ParameterType parameter : declarableType.getParameters()) {
+        initProperties.put(parameter.getName(), newInstance(parameter, cache));
       }
-      return object;
+      declarable.initialize(cache, initProperties);
+      return declarable;
     } catch (Exception e) {
       throw new RuntimeException(
           "Error instantiating class: <" + declarableType.getClassName() + ">", e);
+    }
+  }
+
+  public static <T> T newInstance(ObjectType objectType, Cache cache) {
+    if (objectType.getString() != null) {
+      return (T) objectType.getString();
+    }
+
+    if (objectType.getDeclarable() != null) {
+      return newInstance(objectType.getDeclarable(), cache);
+    }
+
+    return null;
+  }
+
+  public static <V> V newInstance(ClassName<?> type, Cache cache) {
+    try {
+      Class<V> loadedClass = (Class<V>) ClassPathLoader.getLatest().forName(type.getClassName());
+      V object = loadedClass.newInstance();
+      if (object instanceof Declarable) {
+        Declarable declarable = (Declarable) object;
+        declarable.initialize(cache, type.getInitProperties());
+        declarable.init(type.getInitProperties()); // for backwards compatibility
+      }
+      return object;
+    } catch (Exception e) {
+      throw new RuntimeException("Error instantiating class: <" + type.getClassName() + ">", e);
     }
   }
 }
