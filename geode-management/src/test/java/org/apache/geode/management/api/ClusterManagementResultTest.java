@@ -15,37 +15,37 @@
  * limitations under the License.
  */
 
-package org.apache.geode.management.internal.api;
+package org.apache.geode.management.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
-public class APIResultTest {
+public class ClusterManagementResultTest {
   @Test
   public void successfulOnlyWhenResultIsSuccessfulOnAllMembers() {
-    APIResult result = new APIResult();
-    result.addMemberStatus("member-1", APIResult.Result.SUCCESS, "msg-1");
-    result.addMemberStatus("member-2", APIResult.Result.FAILURE, "msg-2");
+    ClusterManagementResult result = new ClusterManagementResult();
+    result.addMemberStatus("member-1", ClusterManagementResult.Result.SUCCESS, "msg-1");
+    result.addMemberStatus("member-2", ClusterManagementResult.Result.FAILURE, "msg-2");
     assertThat(result.isSuccessfulOnDistributedMembers()).isFalse();
     assertThat(result.isSuccessful()).isFalse();
 
-    result = new APIResult();
-    result.addMemberStatus("member-1", APIResult.Result.SUCCESS, "msg-1");
-    result.addMemberStatus("member-2", APIResult.Result.SUCCESS, "msg-2");
+    result = new ClusterManagementResult();
+    result.addMemberStatus("member-1", ClusterManagementResult.Result.SUCCESS, "msg-1");
+    result.addMemberStatus("member-2", ClusterManagementResult.Result.SUCCESS, "msg-2");
     assertThat(result.isSuccessfulOnDistributedMembers()).isTrue();
     assertThat(result.isSuccessful()).isTrue();
   }
 
   @Test
   public void successfulOnlyWhenClusterConfigIsPersisted() {
-    APIResult result = new APIResult();
-    result.setClusterConfigPersisted(APIResult.Result.FAILURE, "msg-1");
+    ClusterManagementResult result = new ClusterManagementResult();
+    result.setClusterConfigPersisted(ClusterManagementResult.Result.FAILURE, "msg-1");
     assertThat(result.isSuccessfullyPersisted()).isFalse();
     assertThat(result.isSuccessful()).isFalse();
 
-    result = new APIResult();
-    result.setClusterConfigPersisted(APIResult.Result.SUCCESS, "msg-1");
+    result = new ClusterManagementResult();
+    result.setClusterConfigPersisted(ClusterManagementResult.Result.SUCCESS, "msg-1");
     assertThat(result.isSuccessfullyPersisted()).isTrue();
     assertThat(result.isSuccessful()).isTrue();
   }

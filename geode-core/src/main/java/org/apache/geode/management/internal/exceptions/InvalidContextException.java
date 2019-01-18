@@ -13,21 +13,12 @@
  * the License.
  */
 
-package org.apache.geode.management.internal.api;
+package org.apache.geode.management.internal.exceptions;
 
-import org.apache.geode.annotations.Experimental;
-import org.apache.geode.cache.configuration.CacheElement;
+import org.apache.geode.GemFireException;
 
-/**
- * Defines the behavior for a management service object, which is responsible for applying and
- * persisting
- * cache configuaration changes on locators and/or servers.
- */
-@Experimental
-public interface ClusterManagementService {
-  APIResult createCacheElement(CacheElement config);
-
-  APIResult deleteCacheElement(CacheElement config);
-
-  APIResult updateCacheElement(CacheElement config);
+public class InvalidContextException extends GemFireException {
+  public InvalidContextException(String message) {
+    super(message);
+  }
 }
