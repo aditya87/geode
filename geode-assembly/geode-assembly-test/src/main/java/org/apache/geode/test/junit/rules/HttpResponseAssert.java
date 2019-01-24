@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
+import org.apache.geode.management.internal.rest.responses.ManagementResponse;
 import org.apache.http.HttpResponse;
 import org.apache.logging.log4j.Logger;
 import org.assertj.core.api.AbstractAssert;
@@ -33,7 +34,6 @@ import org.assertj.core.api.AbstractCharSequenceAssert;
 import org.assertj.core.api.ListAssert;
 
 import org.apache.geode.internal.logging.LogService;
-import org.apache.geode.management.internal.api.ClusterManagementResult;
 
 public class HttpResponseAssert extends AbstractAssert<HttpResponseAssert, HttpResponse> {
   private static Logger logger = LogService.getLogger();
@@ -76,9 +76,9 @@ public class HttpResponseAssert extends AbstractAssert<HttpResponseAssert, HttpR
     return assertThat(responseBody);
   }
 
-  public ClusterManagementResult getClusterManagementResult() throws Exception {
+  public ManagementResponse getManagementResponse() throws Exception {
     ObjectMapper mapper = new ObjectMapper();
-    return mapper.readValue(responseBody, ClusterManagementResult.class);
+    return mapper.readValue(responseBody, ManagementResponse.class);
   }
 
   public HttpResponseAssert hasContentType(String contentType) {

@@ -15,10 +15,13 @@
 
 package org.apache.geode.management.internal.rest.controllers;
 
-import javax.management.InstanceNotFoundException;
-import javax.management.MalformedObjectNameException;
-import javax.servlet.ServletContext;
-
+import org.apache.geode.internal.logging.LogService;
+import org.apache.geode.internal.security.SecurityService;
+import org.apache.geode.management.internal.JettyHelper;
+import org.apache.geode.management.internal.api.LocatorClusterManagementService;
+import org.apache.geode.management.internal.rest.responses.ManagementResponse;
+import org.apache.geode.security.AuthenticationFailedException;
+import org.apache.geode.security.NotAuthorizedException;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.propertyeditors.StringArrayPropertyEditor;
 import org.springframework.http.HttpStatus;
@@ -29,13 +32,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.context.ServletContextAware;
 
-import org.apache.geode.internal.logging.LogService;
-import org.apache.geode.internal.security.SecurityService;
-import org.apache.geode.management.internal.JettyHelper;
-import org.apache.geode.management.internal.api.ClusterManagementResult;
-import org.apache.geode.management.internal.api.LocatorClusterManagementService;
-import org.apache.geode.security.AuthenticationFailedException;
-import org.apache.geode.security.NotAuthorizedException;
+import javax.management.InstanceNotFoundException;
+import javax.management.MalformedObjectNameException;
+import javax.servlet.ServletContext;
 
 public class AbstractManagementController implements ServletContextAware {
 
@@ -54,36 +53,36 @@ public class AbstractManagementController implements ServletContextAware {
   private static final Logger logger = LogService.getLogger();
 
   @ExceptionHandler(Exception.class)
-  public ResponseEntity<ClusterManagementResult> internalError(final Exception e) {
+  public ResponseEntity<ManagementResponse> internalError(final Exception e) {
     logger.error(e.getMessage(), e);
-    return new ResponseEntity<>(new ClusterManagementResult(false, e.getMessage()),
+    return new ResponseEntity<>(new ManagementResponse(null, e.getMessage()),
         HttpStatus.INTERNAL_SERVER_ERROR);
   }
 
   @ExceptionHandler(AuthenticationFailedException.class)
-  public ResponseEntity<ClusterManagementResult> unauthorized(AuthenticationFailedException e) {
-    return new ResponseEntity<>(new ClusterManagementResult(false, e.getMessage()),
+  public ResponseEntity<ManagementResponse> unauthorized(AuthenticationFailedException e) {
+    return new ResponseEntity<>(new ManagementResponse(null, e.getMessage()),
         HttpStatus.UNAUTHORIZED);
   }
 
   @ExceptionHandler({NotAuthorizedException.class, SecurityException.class})
-  public ResponseEntity<ClusterManagementResult> forbidden(Exception e) {
+  public ResponseEntity<ManagementResponse> forbidden(Exception e) {
     logger.info(e.getMessage());
-    return new ResponseEntity<>(new ClusterManagementResult(false, e.getMessage()),
+    return new ResponseEntity<>(new ManagementResponse(null, e.getMessage()),
         HttpStatus.FORBIDDEN);
   }
 
   @ExceptionHandler(MalformedObjectNameException.class)
-  public ResponseEntity<ClusterManagementResult> badRequest(final MalformedObjectNameException e) {
+  public ResponseEntity<ManagementResponse> badRequest(final MalformedObjectNameException e) {
     logger.info(e.getMessage(), e);
-    return new ResponseEntity<>(new ClusterManagementResult(false, e.getMessage()),
+    return new ResponseEntity<>(new ManagementResponse(null, e.getMessage()),
         HttpStatus.BAD_REQUEST);
   }
 
   @ExceptionHandler(InstanceNotFoundException.class)
-  public ResponseEntity<ClusterManagementResult> notFound(final InstanceNotFoundException e) {
+  public ResponseEntity<ManagementResponse> notFound(final InstanceNotFoundException e) {
     logger.info(e.getMessage(), e);
-    return new ResponseEntity<>(new ClusterManagementResult(false, e.getMessage()),
+    return new ResponseEntity<>(new ManagementResponse(null, e.getMessage()),
         HttpStatus.NOT_FOUND);
   }
 
@@ -96,10 +95,10 @@ public class AbstractManagementController implements ServletContextAware {
    * @return a ResponseEntity with an appropriate HTTP status code (403 - Forbidden)
    */
   @ExceptionHandler(AccessDeniedException.class)
-  public ResponseEntity<ClusterManagementResult> handleException(
+  public ResponseEntity<ManagementResponse> handleException(
       final AccessDeniedException cause) {
     logger.info(cause.getMessage(), cause);
-    return new ResponseEntity<>(new ClusterManagementResult(false, cause.getMessage()),
+    return new ResponseEntity<>(new ManagementResponse(null, cause.getMessage()),
         HttpStatus.FORBIDDEN);
   }
 

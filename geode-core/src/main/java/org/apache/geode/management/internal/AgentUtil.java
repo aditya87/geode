@@ -53,7 +53,8 @@ public class AgentUtil {
    *        geode-web-api
    */
   public String findWarLocation(String warFilePrefix) {
-    final String versionedWarFileName = warFilePrefix + "-" + gemfireVersion + ".war";
+//    final String versionedWarFileName = warFilePrefix + "-" + gemfireVersion + ".war";
+    final String versionedWarFileName = warFilePrefix + "-1.9.0-SNAPSHOT.war";
     final String unversionedWarFileName = warFilePrefix + ".war";
 
     // This will attempt to find the war file defined somewhere on the Java classpath,

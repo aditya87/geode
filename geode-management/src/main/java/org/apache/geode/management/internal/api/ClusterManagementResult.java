@@ -16,6 +16,7 @@ package org.apache.geode.management.internal.api;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -51,11 +52,20 @@ public class ClusterManagementResult {
     return persistenceStatus;
   }
 
+  public String getCombinedErrorMessage() {
+    String memberErrors = memberStatuses.keySet().stream()
+            .filter(m -> memberStatuses.get(m).status == Status.Result.FAILURE)
+            .map(f -> f + " -> " + memberStatuses.get(f).getMessage())
+            .collect(Collectors.joining("\n"));
+
+    String persistenceError = persistenceStatus.status == Status.Result.FAILURE ?
+            "Persistence -> " + persistenceStatus.message : "";
+
+    return memberErrors + "\n" + persistenceError;
+  }
+
   @JsonIgnore
   public boolean isSuccessfullyAppliedOnMembers() {
-    if (memberStatuses.isEmpty()) {
-      return false;
-    }
     return memberStatuses.values().stream().allMatch(x -> x.status == Status.Result.SUCCESS);
   }
 

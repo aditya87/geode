@@ -18,6 +18,7 @@ package org.apache.geode.management.internal.rest;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.geode.management.internal.rest.responses.ManagementResponse;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -25,7 +26,6 @@ import org.junit.Test;
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.configuration.CacheConfig;
 import org.apache.geode.cache.configuration.RegionConfig;
-import org.apache.geode.management.internal.api.ClusterManagementResult;
 import org.apache.geode.test.dunit.rules.ClusterStartupRule;
 import org.apache.geode.test.dunit.rules.MemberVM;
 import org.apache.geode.test.junit.rules.GeodeDevRestClient;
@@ -55,14 +55,13 @@ public class RegionManagementDunitTest {
     ObjectMapper mapper = new ObjectMapper();
     String json = mapper.writeValueAsString(regionConfig);
 
-    ClusterManagementResult result =
+    ManagementResponse result =
         restClient.doPostAndAssert("/regions", json, "test", "test")
             .hasStatusCode(201)
-            .getClusterManagementResult();
+            .getManagementResponse();
 
-    assertThat(result.isSuccessfullyAppliedOnMembers()).isTrue();
-    assertThat(result.isSuccessfullyPersisted()).isTrue();
-    assertThat(result.getMemberStatuses()).containsKeys("server-1").hasSize(1);
+    assertThat(result.getMetadata().getUrl()).isEqualTo("/geode/v2/regions/customers");
+    assertThat(result.getMessage()).isNull();
 
     // make sure region is created
     server.invoke(() -> {

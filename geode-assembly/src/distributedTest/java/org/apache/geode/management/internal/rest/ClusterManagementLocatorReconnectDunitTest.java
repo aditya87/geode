@@ -72,14 +72,8 @@ public class ClusterManagementLocatorReconnectDunitTest {
     ObjectMapper mapper = new ObjectMapper();
     String json = mapper.writeValueAsString(regionConfig);
 
-    ClusterManagementResult result =
-        restClient.doPostAndAssert("/regions", json, "test", "test")
-            .hasStatusCode(201)
-            .getClusterManagementResult();
-
-    assertThat(result.isSuccessfullyAppliedOnMembers()).isTrue();
-    assertThat(result.isSuccessfullyPersisted()).isTrue();
-    assertThat(result.getMemberStatuses()).containsKeys("server-1").hasSize(1);
+    restClient.doPostAndAssert("/regions", json, "test", "test")
+            .hasStatusCode(201);
 
     // make sure region is created
     server.invoke(() -> {
